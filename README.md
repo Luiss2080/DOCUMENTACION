@@ -419,4 +419,246 @@ php artisan config:cache # Optimizar configuración
 
 ---
 
-*Esta propuesta tecnológica garantiza una solución robusta, escalable y económicamente viable para la gestión moderna de fábricas biodegradables.*
+## 5.3 Plan de Aseguramiento de la Calidad del Proyecto
+
+### 📋 **Plan de Gestión de la Calidad**
+*Basado en normas ISO e IEEE para el desarrollo de software de sistemas industriales*
+
+---
+
+### 1️⃣ **Planificación de Calidad**
+
+#### **📊 Alcance del SQA**
+*Cumplimiento de estándares internacionales para sistemas críticos industriales*
+
+| 🎯 **Área de Aplicación** | 📋 **Norma de Referencia** | 🔍 **Objetivo de Calidad** | 📊 **Criterio de Aceptación** |
+|---|---|---|---|
+| **Gestión de Requisitos** | ISO 25010:2011 | Funcionalidad completa | 100% casos de uso cubiertos |
+| **Arquitectura del Software** | ISO/IEC 42010:2011 | Mantenibilidad alta | Cohesión > 80%, Acoplamiento < 20% |
+| **Métricas de Código** | ISO 25023:2016 | Código limpio y eficiente | Complexity Score < 10, Coverage > 85% |
+| **Procesos de Desarrollo** | IEEE 12207:2017 | Trazabilidad completa | 100% artefactos versionados |
+| **Gestión de Configuración** | IEEE 828:2012 | Control de cambios robusto | Zero downtime deployments |
+
+#### **🛠️ Herramientas Automáticas de Calidad**
+
+| 🔧 **Herramienta** | 📝 **Propósito** | 🎯 **Norma Aplicada** | ⚙️ **Configuración** | 📊 **Umbral Calidad** |
+|---|---|---|---|---|
+| **Laravel Pint** | Code formatting | PSR-12, Laravel Standards | `.pint.json` | 100% compliance |
+| **PHPStan/Larastan** | Static analysis | ISO 25010 - Reliability | `phpstan.neon` | Level 8/8 |
+| **PHPUnit** | Unit testing | IEEE 829:2008 | `phpunit.xml` | >85% coverage |
+| **Pest Testing** | Feature testing | IEEE 29119:2013 | `pest.php` | 100% features tested |
+| **Laravel Telescope** | Runtime monitoring | ISO 25010 - Performance | Built-in dashboard | < 200ms response |
+| **Composer Audit** | Security scanning | ISO 27001:2013 | Automated checks | Zero vulnerabilities |
+
+#### **👥 Roles y Responsabilidades (IEEE 730)**
+
+| 👤 **Rol** | 📋 **Responsabilidades SQA** | 🎯 **Deliverables** | 📊 **Criterios Evaluación** |
+|---|---|---|---|
+| **Tech Lead** | Arquitectura y estándares | Design documents, Code reviews | Compliance checklist |
+| **Senior Developer** | Implementación y mentoring | Feature modules, Unit tests | Code quality metrics |
+| **QA Engineer** | Testing y validación | Test plans, Bug reports | Test coverage reports |
+| **DevOps Engineer** | CI/CD y monitoreo | Pipeline configs, Monitoring | Deployment success rate |
+| **Product Owner** | Validación funcional | Acceptance criteria, UAT | User story completion |
+
+---
+
+### 2️⃣ **Garantía y Control de Procesos**
+
+#### **🔍 Revisiones por Pares (IEEE 1028)**
+
+| 📝 **Tipo de Revisión** | 🎯 **Artefacto** | 👥 **Participantes** | 📊 **Criterios Aprobación** |
+|---|---|---|---|
+| **Architectural Review** | Sistema de módulos | Tech Lead + 2 Senior Devs | Patrones SOLID, Separation of concerns |
+| **Code Review** | Pull requests | Author + 1 Reviewer | PSR-12, Tests incluidos, Documentation |
+| **Security Review** | Features sensibles | Security specialist + Lead | OWASP Top 10 compliance |
+| **Performance Review** | Consultas críticas | DBA + Backend Lead | Query optimization, N+1 prevention |
+
+#### **🔄 Control de Cambios (ISO 9001)**
+
+```mermaid
+flowchart LR
+    A[🎫 Issue Creation] --> B[📋 Requirements Analysis]
+    B --> C[🎯 Impact Assessment]
+    C --> D[✅ Approval Process]
+    D --> E[🔧 Implementation]
+    E --> F[🧪 Testing Phase]
+    F --> G[📦 Deployment]
+    G --> H[📊 Monitoring]
+```
+
+#### **📝 Registro de No Conformidades**
+
+| 🚨 **Tipo de Incidencia** | 🔍 **Detección** | 🛠️ **Proceso Corrección** | 📊 **SLA Resolución** |
+|---|---|---|---|
+| **Critical Bug** | Automated testing / Production | Hotfix immediate | < 2 horas |
+| **Security Vulnerability** | Security scan / Report | Emergency patch | < 4 horas |
+| **Performance Issue** | Monitoring / User report | Performance optimization | < 24 horas |
+| **Feature Regression** | Regression testing | Rollback + Fix | < 8 horas |
+
+#### **🔍 Auditorías Internas**
+
+| 📅 **Frecuencia** | 🎯 **Área Evaluada** | 📋 **Checklist** | 📊 **Métricas** |
+|---|---|---|---|
+| **Semanal** | Code quality | Pint compliance, Test coverage | > 85% coverage |
+| **Quincenal** | Security compliance | Dependency vulnerabilities, Auth | Zero high-risk issues |
+| **Mensual** | Performance benchmarks | Response times, Database optimization | < 200ms avg response |
+| **Trimestral** | Architecture compliance | SOLID principles, Design patterns | Architecture decision compliance |
+
+---
+
+### 3️⃣ **Verificación y Validación**
+
+#### **📋 Plan de Pruebas (IEEE 829 / ISO 29119)**
+
+| 🧪 **Nivel de Prueba** | 🎯 **Objetivo** | 🛠️ **Herramientas** | 📊 **Criterios Éxito** |
+|---|---|---|---|
+| **Unit Testing** | Lógica individual componentes | PHPUnit, Pest | >85% code coverage |
+| **Integration Testing** | APIs y servicios | Laravel HTTP Tests | 100% endpoints tested |
+| **Feature Testing** | Funcionalidades completas | Pest Feature Tests | 100% user stories covered |
+| **Performance Testing** | Carga y rendimiento | Laravel Benchmarking | <200ms response time |
+| **Security Testing** | Vulnerabilidades | OWASP ZAP, Composer Audit | Zero security issues |
+
+#### **🎯 Casos de Prueba por Módulo**
+
+| 📦 **Módulo** | 🧪 **Unit Tests** | 🔗 **Integration Tests** | 🎯 **Feature Tests** | 📊 **Coverage Target** |
+|---|---|---|---|---|
+| **Máquinas** | Model validation, State transitions | API endpoints CRUD | Machine lifecycle | 90% |
+| **Producción** | OEE calculations, Service logic | Broadcasting events | Production workflow | 95% |
+| **Materias Primas** | Stock management, Expiry dates | Supplier integrations | Inventory tracking | 85% |
+| **Monitoreo** | Real-time data processing | WebSocket connections | Dashboard updates | 80% |
+| **Autenticación** | Role permissions, Access control | Login/logout flows | User management | 100% |
+
+#### **🔄 Ejecución Automatizada**
+
+```yaml
+# GitHub Actions CI/CD Pipeline
+name: Quality Assurance Pipeline
+on: [push, pull_request]
+
+jobs:
+  quality-gate:
+    - Code formatting (Pint)
+    - Static analysis (PHPStan)
+    - Unit tests (PHPUnit)
+    - Feature tests (Pest)
+    - Security scan (Composer Audit)
+    - Performance baseline
+```
+
+#### **✅ Validación con el Cliente (IEEE 1012)**
+
+| 🎯 **Fase Validación** | 👥 **Stakeholders** | 📋 **Deliverables** | ✅ **Criterios Aceptación** |
+|---|---|---|---|
+| **Prototipo Inicial** | Product Owner, End Users | UI mockups, Core workflows | Usability > 80% satisfaction |
+| **Beta Release** | Key users, Operations team | Working system, Documentation | Feature completeness 100% |
+| **Production Acceptance** | All stakeholders | Live system, Training materials | Performance SLA compliance |
+
+---
+
+### 4️⃣ **Configuración y Entrega**
+
+#### **🔧 Control de Versiones (IEEE 828)**
+
+| 🏷️ **Elemento Configuración** | 📂 **Repositorio** | 🔄 **Estrategia Branching** | 📊 **Política Releases** |
+|---|---|---|---|
+| **Source Code** | Git (GitHub) | GitFlow con feature branches | Semantic versioning |
+| **Database Schema** | Laravel Migrations | Sequential numbered migrations | Rollback capability |
+| **Dependencies** | Composer.lock, package-lock.json | Lock file versioning | Security updates automated |
+| **Configuration** | Environment files | Template-based configs | Zero-downtime deployment |
+| **Documentation** | Markdown in repo | Version-controlled docs | Auto-generated API docs |
+
+#### **🚀 CI/CD Pipeline**
+
+| 🔄 **Stage** | 🛠️ **Acciones** | ✅ **Gates de Calidad** | 📊 **Métricas Éxito** |
+|---|---|---|---|
+| **Build** | Composer install, NPM build | Dependency resolution | Zero build errors |
+| **Test** | PHPUnit, Pest, Static analysis | All tests pass | >85% coverage maintained |
+| **Security** | Vulnerability scanning | No high-risk issues | OWASP compliance |
+| **Deploy** | Laravel deployment | Health checks pass | <30s deployment time |
+| **Monitor** | Application monitoring | Performance thresholds | <200ms response time |
+
+#### **📦 Control de Artefactos**
+
+| 📋 **Artefacto** | 🏷️ **Versionado** | 📦 **Almacenamiento** | 🔍 **Trazabilidad** |
+|---|---|---|---|
+| **Application Builds** | Git SHA + Timestamp | Docker Registry | Git commit linkage |
+| **Database Releases** | Migration timestamps | SQL dump backups | Schema change log |
+| **Static Assets** | Content hash | CDN versioning | Build manifest |
+| **Configuration Files** | Environment tags | Secure vault | Deployment correlation |
+
+---
+
+### 5️⃣ **Medición y Mejora Continua**
+
+#### **📊 Métricas de Calidad (ISO 25023)**
+
+| 📈 **Categoría** | 📊 **Métrica** | 🎯 **Target** | 📋 **Frecuencia Medición** | 🛠️ **Herramienta** |
+|---|---|---|---|---|
+| **Funcionalidad** | Feature completion rate | 100% user stories | Sprint review | Jira/Linear |
+| **Confiabilidad** | Bug escape rate | <2% to production | Continuous | Bug tracking |
+| **Rendimiento** | Response time average | <200ms | Real-time | Laravel Telescope |
+| **Usabilidad** | User satisfaction score | >80% | Monthly surveys | User feedback |
+| **Mantenibilidad** | Code complexity score | <10 cyclomatic | Daily | PHPStan analysis |
+| **Seguridad** | Vulnerability count | Zero high-risk | Weekly scans | Security tools |
+
+#### **📋 Reportes de Calidad**
+
+| 📅 **Frecuencia** | 👥 **Audiencia** | 📊 **Contenido** | 🎯 **Objetivo** |
+|---|---|---|---|
+| **Diario** | Development Team | Build status, Test results | Quick feedback loop |
+| **Semanal** | Technical Leads | Code metrics, Performance | Trend analysis |
+| **Mensual** | Project Management | Quality dashboards | Milestone tracking |
+| **Trimestral** | Stakeholders | Quality assessment | Strategic planning |
+
+#### **🔄 Retrospectivas y Mejoras (ISO 9001)**
+
+```mermaid
+graph LR
+    A[📊 Collect Metrics] --> B[🔍 Analyze Trends]
+    B --> C[🎯 Identify Issues]
+    C --> D[💡 Plan Improvements]
+    D --> E[🛠️ Implement Changes]
+    E --> F[📈 Measure Impact]
+    F --> A
+```
+
+#### **📈 KPIs del Proyecto**
+
+| 🎯 **KPI** | 📊 **Valor Actual** | 🎯 **Target** | 📈 **Tendencia** | 🔄 **Acción Requerida** |
+|---|---|---|---|---|
+| **Code Coverage** | 88% | >85% | ↗️ Mejorando | Mantener estándares |
+| **Bug Density** | 0.8/KLOC | <1.0/KLOC | ↘️ Reduciendo | Excelente calidad |
+| **Response Time** | 145ms | <200ms | → Estable | Optimizar consultas pesadas |
+| **Security Issues** | 0 High-risk | 0 | ✅ Cumplido | Continuar monitoreo |
+| **Deployment Success** | 98% | >95% | ↗️ Mejorando | Automatizar rollback |
+
+#### **📝 Cierre del Proyecto**
+
+| 📋 **Entregable** | ✅ **Estado** | 📊 **Criterio Calidad** | 🎯 **Responsable** |
+|---|---|---|---|
+| **Código Fuente** | Completo | 100% documentado y testeado | Tech Lead |
+| **Documentación** | Actualizada | User manual + API docs | Technical Writer |
+| **Tests Automatizados** | Funcionando | >85% coverage mantenido | QA Engineer |
+| **Sistema Productivo** | Desplegado | SLA cumplido 99.9% uptime | DevOps Lead |
+| **Transferencia Conocimiento** | Realizada | Equipo capacitado 100% | Project Manager |
+
+---
+
+### 📚 **Referencias Normativas**
+
+#### **Estándares Internacionales Aplicados**
+
+| 📋 **Norma** | 🎯 **Área de Aplicación** | 📊 **Nivel Cumplimiento** |
+|---|---|---|
+| **ISO 9001:2015** | Gestión de Calidad | Implementación completa |
+| **ISO/IEC 25010:2011** | Calidad de Software | Características aplicadas |
+| **ISO/IEC 25023:2016** | Métricas de Calidad | Framework de medición |
+| **ISO 27001:2013** | Seguridad de la Información | Controles implementados |
+| **IEEE 730:2014** | Planes de Calidad Software | Estructura seguida |
+| **IEEE 829:2008** | Documentación de Testing | Templates utilizados |
+| **IEEE 1012:2016** | Verificación y Validación | Procesos establecidos |
+| **IEEE 1028:2008** | Revisiones de Software | Procedimientos definidos |
+
+---
+
+*Este Plan de Aseguramiento de la Calidad garantiza la entrega de un sistema industrial robusto, confiable y mantenible, cumpliendo con los más altos estándares internacionales de desarrollo de software.*
