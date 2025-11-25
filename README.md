@@ -1,366 +1,547 @@
-# 5.2.2 Base de Datos (Database)
+# 5.2.6 Archivos Públicos (Public)
 
-Incluye los archivos de migración, respaldos, semillas y estructura inicial de la base de datos, permitiendo la configuración y gestión de los datos del sistema de fábrica biodegradable.
+Contiene los archivos accesibles públicamente del sistema, incluyendo el punto de entrada principal, configuraciones del servidor web y archivos estáticos del sistema de fábrica biodegradable.
 
-## 📁 Estructura de la Base de Datos
+## 📁 Estructura de Archivos Públicos
 
 ```
-├── 📁 BackUp/
-│   ├── 📄 2025_08_18_tech_home.sql - Respaldo del 18 de agosto 2025
-│   └── 📄 2025_08_19_tech_home.sql - Respaldo del 19 de agosto 2025
-│
-├── 📁 factories/
-│   └── 📄 UserFactory.php - Factory para generar usuarios de prueba
-│
-├── 📁 migrations/
-│   ├── 📄 0001_01_01_000000_create_users_table.php - Tabla de usuarios del sistema
-│   ├── 📄 0001_01_01_000001_create_cache_table.php - Tabla de caché del sistema
-│   ├── 📄 0001_01_01_000002_create_jobs_table.php - Tabla de trabajos en cola
-│   ├── 📄 2025_11_19_031653_create_tipos_maquinas_table.php - Tipos de máquinas
-│   ├── 📄 2025_11_19_031655_create_maquinas_table.php - Máquinas de la fábrica
-│   ├── 📄 2025_11_19_031656_create_proveedores_table.php - Proveedores de materias primas
-│   ├── 📄 2025_11_19_031657_create_materias_primas_table.php - Materias primas del sistema
-│   ├── 📄 2025_11_19_031659_create_lotes_materia_prima_table.php - Lotes de materias primas
-│   ├── 📄 2025_11_19_031700_create_productos_table.php - Productos fabricados
-│   ├── 📄 2025_11_19_031701_create_recetas_table.php - Recetas de productos
-│   ├── 📄 2025_11_19_031703_create_receta_detalles_table.php - Detalles de recetas
-│   ├── 📄 2025_11_19_031704_create_producciones_table.php - Registro de producciones
-│   ├── 📄 2025_11_19_031705_create_produccion_consumos_table.php - Consumos por producción
-│   ├── 📄 2025_11_19_031706_create_lotes_productos_table.php - Lotes de productos terminados
-│   ├── 📄 2025_11_19_031707_create_mantenimientos_table.php - Mantenimientos de máquinas
-│   ├── 📄 2025_11_19_031708_create_paradas_table.php - Paradas de máquinas
-│   ├── 📄 2025_11_19_031800_create_maquinas_estado_vivo_table.php - Estado en tiempo real
-│   ├── 📄 2025_11_19_040341_create_permission_tables.php - Sistema de permisos
-│   └── 📄 2025_11_19_041311_add_activo_to_users_table.php - Campo activo en usuarios
-│
-└── 📁 seeders/
-    ├── 📄 DatabaseSeeder.php - Seeder principal del sistema
-    ├── 📄 datos_iniciales.sql - Datos iniciales del sistema
-    └── 📄 permisos_basicos.sql - Permisos y roles básicos
+├── 📄 index.php - Punto de entrada principal de la aplicación
+├── 📄 robots.txt - Configuración para robots de búsqueda
+├── 📄 .htaccess - Configuración del servidor Apache
+├── 📄 favicon.ico - Icono del sitio web
+├── 📄 manifest.json - Configuración para PWA (Progressive Web App)
+├── 📁 build/ - Archivos compilados por Vite (CSS/JS)
+│   ├── 📄 manifest.json - Manifiesto de assets compilados
+│   ├── 📁 assets/
+│   │   ├── 📄 app-[hash].css - Estilos compilados
+│   │   ├── 📄 app-[hash].js - JavaScript compilado
+│   │   └── 📄 [varios]-[hash].[ext] - Assets con hash de cache
+│   └── 📁 images/ - Imágenes optimizadas
+├── 📁 storage/ - Enlace simbólico a storage/app/public
+│   ├── 📁 maquinas/ - Fotos de máquinas subidas
+│   ├── 📁 usuarios/ - Fotos de perfil de usuarios
+│   ├── 📁 reportes/ - Reportes generados
+│   └── 📁 documentos/ - Documentos del sistema
+├── 📁 images/ - Imágenes estáticas del sistema
+│   ├── 📄 logo.png - Logo principal
+│   ├── 📄 logo-white.png - Logo en blanco
+│   ├── 📄 placeholder.png - Imagen placeholder
+│   └── 📁 icons/ - Iconos del sistema
+└── 📁 docs/ - Documentación pública (opcional)
 ```
 
 ---
 
-## 🗄️ Estructura de Tablas Principales
+## 🚀 Punto de Entrada Principal
 
-### 👥 **Gestión de Usuarios y Permisos**
-```sql
--- Tabla de usuarios del sistema
-users (
-    id, name, email, email_verified_at, password, 
-    activo, foto_perfil, remember_token, 
-    created_at, updated_at
-)
-
--- Sistema de permisos (Spatie Permission)
-permissions, roles, model_has_permissions, 
-model_has_roles, role_has_permissions
-```
-
-### 🏭 **Gestión de Máquinas**
-```sql
--- Tipos de máquinas disponibles
-tipos_maquinas (
-    id, nombre, descripcion, created_at, updated_at
-)
-
--- Máquinas de la fábrica
-maquinas (
-    id, codigo, nombre, descripcion, foto, 
-    tipo_maquina_id, capacidad_maxima, 
-    velocidad_maxima, created_at, updated_at
-)
-
--- Estado en tiempo real de máquinas
-maquinas_estado_vivo (
-    id, maquina_id, kg_producidos, oee_actual, 
-    velocidad_actual, updated_at, created_at
-)
-```
-
-### 📦 **Gestión de Inventario**
-```sql
--- Proveedores de materias primas
-proveedores (
-    id, nombre, contacto, telefono, email, 
-    direccion, created_at, updated_at
-)
-
--- Materias primas del sistema
-materias_primas (
-    id, nombre, descripcion, unidad_medida, 
-    precio_unitario, proveedor_id, 
-    created_at, updated_at
-)
-
--- Lotes de materias primas
-lotes_materia_prima (
-    id, materia_prima_id, cantidad, 
-    fecha_vencimiento, precio_lote, 
-    created_at, updated_at
-)
-
--- Productos fabricados
-productos (
-    id, nombre, descripcion, unidad_medida, 
-    precio_venta, created_at, updated_at
-)
-
--- Lotes de productos terminados
-lotes_productos (
-    id, producto_id, cantidad, fecha_produccion, 
-    fecha_vencimiento, produccion_id, 
-    created_at, updated_at
-)
-```
-
-### 🧪 **Recetas y Producción**
-```sql
--- Recetas de productos
-recetas (
-    id, producto_id, nombre, descripcion, 
-    cantidad_base, created_at, updated_at
-)
-
--- Detalles de recetas (ingredientes)
-receta_detalles (
-    id, receta_id, materia_prima_id, 
-    cantidad_requerida, created_at, updated_at
-)
-
--- Registro de producciones
-producciones (
-    id, maquina_id, operador_id, encargado_id, 
-    fecha_inicio, fecha_fin, kg_producidos, 
-    oee, velocidad, created_at, updated_at
-)
-
--- Consumos por producción
-produccion_consumos (
-    id, produccion_id, lote_materia_prima_id, 
-    cantidad_consumida, created_at, updated_at
-)
-```
-
-### 🔧 **Mantenimiento y Paradas**
-```sql
--- Mantenimientos de máquinas
-mantenimientos (
-    id, maquina_id, tipo, fecha_programada, 
-    fecha_realizada, descripcion, realizado_por, 
-    costo, horas_parada, created_at, updated_at
-)
-
--- Paradas de máquinas
-paradas (
-    id, maquina_id, fecha_inicio, fecha_fin, 
-    motivo, tipo, descripcion, 
-    created_at, updated_at
-)
-```
-
----
-
-## 🏗️ Migraciones Cronológicas
-
-### **Migración Base del Sistema**
-```php
-// 0001_01_01_000000_create_users_table.php
-Schema::create('users', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('email')->unique();
-    $table->timestamp('email_verified_at')->nullable();
-    $table->string('password');
-    $table->rememberToken();
-    $table->timestamps();
-});
-
-Schema::create('sessions', function (Blueprint $table) {
-    $table->string('id')->primary();
-    $table->foreignId('user_id')->nullable()->index();
-    $table->string('ip_address', 45)->nullable();
-    $table->text('user_agent')->nullable();
-    $table->longText('payload');
-    $table->integer('last_activity')->index();
-});
-```
-
-### **Migración de Máquinas**
-```php
-// 2025_11_19_031655_create_maquinas_table.php
-Schema::create('maquinas', function (Blueprint $table) {
-    $table->id();
-    $table->string('codigo')->unique();
-    $table->string('nombre');
-    $table->text('descripcion')->nullable();
-    $table->string('foto')->nullable();
-    $table->foreignId('tipo_maquina_id')->constrained('tipos_maquinas');
-    $table->decimal('capacidad_maxima', 10, 2);
-    $table->decimal('velocidad_maxima', 10, 2);
-    $table->timestamps();
-});
-```
-
-### **Migración de Estado en Tiempo Real**
-```php
-// 2025_11_19_031800_create_maquinas_estado_vivo_table.php
-Schema::create('maquinas_estado_vivo', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('maquina_id')->unique()->constrained('maquinas');
-    $table->decimal('kg_producidos', 10, 2)->default(0);
-    $table->decimal('oee_actual', 5, 2)->default(0);
-    $table->decimal('velocidad_actual', 10, 2)->default(0);
-    $table->timestamps();
-});
-```
-
----
-
-## 🌱 Seeders y Datos Iniciales
-
-### **DatabaseSeeder Principal**
+### 📄 `public/index.php`
 ```php
 <?php
 
-namespace Database\Seeders;
+/*
+|--------------------------------------------------------------------------
+| Punto de Entrada de la Aplicación
+|--------------------------------------------------------------------------
+|
+| Este archivo es el punto de entrada para todas las solicitudes HTTP
+| que llegan a la aplicación de fábrica biodegradable. Configura el
+| autoloader de Composer, inicia Laravel y maneja la solicitud.
+|
+*/
 
-use Illuminate\Database\Seeder;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
-class DatabaseSeeder extends Seeder
+// Marcar tiempo de inicio para métricas de performance
+define('LARAVEL_START', microtime(true));
+
+// Verificar modo de mantenimiento
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+// Registrar el autoloader de Composer
+require __DIR__.'/../vendor/autoload.php';
+
+// Inicializar Laravel y manejar la solicitud
+/** @var Application $app */
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$app->handleRequest(Request::capture());
+```
+
+---
+
+## 🌐 Configuración del Servidor Web
+
+### 📄 `public/.htaccess`
+```apache
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # ===== HEADERS DE SEGURIDAD =====
+    # Manejo de headers de autorización
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Manejo de tokens XSRF para protección CSRF
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # ===== REDIRECCIONES =====
+    # Redireccionar barras finales si no es una carpeta
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Enviar solicitudes al controlador frontal
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# ===== CONFIGURACIÓN DE CACHÉ =====
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Imágenes - 1 año
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    
+    # CSS y JavaScript - 1 mes
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    
+    # Fonts - 1 año
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+</IfModule>
+
+# ===== COMPRESIÓN GZIP =====
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
+
+# ===== HEADERS DE SEGURIDAD =====
+<IfModule mod_headers.c>
+    # Prevenir clickjacking
+    Header always append X-Frame-Options SAMEORIGIN
+    
+    # XSS Protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Content Type Options
+    Header set X-Content-Type-Options nosniff
+    
+    # Referrer Policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Content Security Policy (ajustar según necesidades)
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:; font-src 'self' https://fonts.gstatic.com; frame-src 'none';"
+</IfModule>
+
+# ===== CONFIGURACIÓN ESPECÍFICA PARA PRODUCCIÓN =====
+# Ocultar información del servidor
+ServerTokens Prod
+Header unset Server
+Header unset X-Powered-By
+
+# Bloquear acceso a archivos sensibles
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.(env|log|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+```
+
+---
+
+## 🤖 Configuración para Robots
+
+### 📄 `public/robots.txt`
+```txt
+# Configuración de robots.txt para Fábrica Biodegradable
+# Controla el acceso de los crawlers de motores de búsqueda
+
+# Configuración para producción
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /storage/reportes/
+Disallow: /storage/documentos/
+Disallow: /dashboard/
+Disallow: /maquinas/
+Disallow: /produccion/
+Disallow: /inventario/
+Disallow: /mantenimiento/
+
+# Permitir acceso a páginas públicas
+Allow: /
+Allow: /welcome
+Allow: /storage/images/
+
+# Archivos permitidos
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+
+# Especificar sitemap (cuando esté disponible)
+# Sitemap: https://tudominio.com/sitemap.xml
+
+# Configuración específica para desarrollo
+# User-agent: *
+# Disallow: /
+
+# Tiempo de rastreo (10 segundos entre solicitudes)
+Crawl-delay: 10
+```
+
+---
+
+## 📱 Configuración PWA
+
+### 📄 `public/manifest.json`
+```json
 {
-    public function run(): void
+  "name": "Fábrica Biodegradable - Sistema de Monitoreo",
+  "short_name": "Fábrica Bio",
+  "description": "Sistema de monitoreo y control en tiempo real para fábrica de productos biodegradables",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#22c55e",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "es",
+  
+  "icons": [
     {
-        // Crear usuario administrador
-        \App\Models\User::factory()->create([
-            'name' => 'Administrador',
-            'email' => 'admin@fabricabiodegradable.com',
-            'activo' => true,
-        ]);
-        
-        // Ejecutar seeders específicos
-        $this->call([
-            TipoMaquinaSeeder::class,
-            MaquinaSeeder::class,
-            ProveedorSeeder::class,
-            MateriaPrimaSeeder::class,
-            ProductoSeeder::class,
-            RecetaSeeder::class,
-            PermissionSeeder::class,
-        ]);
+      "src": "/images/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
+  ],
+  
+  "categories": ["productivity", "business", "utilities"],
+  "screenshots": [
+    {
+      "src": "/images/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Dashboard principal del sistema"
+    },
+    {
+      "src": "/images/screenshots/monitor.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Monitor de máquinas en tiempo real"
+    }
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Panel",
+      "description": "Ir al dashboard principal",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/images/icons/dashboard-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Monitor Planta",
+      "short_name": "Monitor",
+      "description": "Ver monitor de máquinas",
+      "url": "/planta/monitor-maquina",
+      "icons": [
+        {
+          "src": "/images/icons/monitor-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Máquinas",
+      "short_name": "Máquinas",
+      "description": "Gestionar máquinas",
+      "url": "/maquinas",
+      "icons": [
+        {
+          "src": "/images/icons/machines-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  
+  "related_applications": [],
+  "prefer_related_applications": false
 }
 ```
 
-### **Datos Iniciales del Sistema**
-```sql
--- datos_iniciales.sql
-INSERT INTO tipos_maquinas (nombre, descripcion) VALUES
-('Extrusora', 'Máquina para extrusión de material biodegradable'),
-('Mezcladora', 'Máquina para mezcla de materias primas'),
-('Prensa', 'Máquina para prensado y moldeado'),
-('Cortadora', 'Máquina para corte de material');
+---
 
-INSERT INTO proveedores (nombre, contacto, telefono, email) VALUES
-('EcoMateriales SA', 'Juan Pérez', '+591 123456789', 'contacto@ecomateriales.com'),
-('BioPack Ltda', 'María García', '+591 987654321', 'ventas@biopack.com');
-```
+## 🎨 Assets Compilados (Build)
 
-### **Permisos y Roles Básicos**
-```sql
--- permisos_basicos.sql
-INSERT INTO permissions (name, guard_name) VALUES
-('ver_dashboard', 'web'),
-('gestionar_maquinas', 'web'),
-('gestionar_produccion', 'web'),
-('gestionar_inventario', 'web'),
-('gestionar_mantenimiento', 'web'),
-('administrar_sistema', 'web');
-
-INSERT INTO roles (name, guard_name) VALUES
-('Administrador', 'web'),
-('Operador', 'web'),
-('Encargado', 'web'),
-('Mantenimiento', 'web');
+### 📄 `public/build/manifest.json` (Ejemplo)
+```json
+{
+  "resources/css/app.css": {
+    "file": "assets/app-7c2d0c84.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-4ed993c7.js",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_app-b3e8e587.js"
+    ],
+    "css": [
+      "assets/app-7c2d0c84.css"
+    ]
+  },
+  "resources/js/Components/ApplicationLogo.vue": {
+    "file": "assets/ApplicationLogo-8e9b4f21.js",
+    "src": "resources/js/Components/ApplicationLogo.vue"
+  },
+  "resources/js/Layouts/AppLayout.vue": {
+    "file": "assets/AppLayout-b8c4f3d5.js",
+    "src": "resources/js/Layouts/AppLayout.vue",
+    "imports": [
+      "_app-b3e8e587.js",
+      "resources/js/Components/ApplicationLogo.vue"
+    ]
+  },
+  "resources/js/Pages/Dashboard.vue": {
+    "file": "assets/Dashboard-f1e6b2a3.js",
+    "src": "resources/js/Pages/Dashboard.vue",
+    "imports": [
+      "_app-b3e8e587.js",
+      "resources/js/Layouts/AppLayout.vue"
+    ]
+  },
+  "_app-b3e8e587.js": {
+    "file": "assets/app-b3e8e587.js"
+  }
+}
 ```
 
 ---
 
-## 🔄 Respaldos Automáticos
+## 🖼️ Estructura de Imágenes
 
-### **Configuración de Respaldos**
+### **Directorio `public/images/`**
+```
+images/
+├── logo.png (512x512) - Logo principal en color
+├── logo-white.png (512x512) - Logo en blanco para fondos oscuros
+├── logo-small.png (64x64) - Logo pequeño para favicon
+├── placeholder.png (400x300) - Imagen por defecto
+├── banner-welcome.jpg (1920x1080) - Banner de la página de bienvenida
+├── 📁 icons/
+│   ├── icon-72x72.png - Icono PWA 72x72
+│   ├── icon-96x96.png - Icono PWA 96x96
+│   ├── icon-128x128.png - Icono PWA 128x128
+│   ├── icon-144x144.png - Icono PWA 144x144
+│   ├── icon-152x152.png - Icono PWA 152x152
+│   ├── icon-192x192.png - Icono PWA 192x192
+│   ├── icon-384x384.png - Icono PWA 384x384
+│   ├── icon-512x512.png - Icono PWA 512x512
+│   ├── dashboard-96x96.png - Icono de dashboard
+│   ├── monitor-96x96.png - Icono de monitor
+│   └── machines-96x96.png - Icono de máquinas
+├── 📁 screenshots/
+│   ├── dashboard.png - Screenshot del dashboard
+│   ├── monitor.png - Screenshot del monitor
+│   └── maquinas.png - Screenshot de gestión de máquinas
+└── 📁 backgrounds/
+    ├── factory-bg.jpg - Fondo de fábrica
+    ├── green-pattern.svg - Patrón verde corporativo
+    └── texture-metal.jpg - Textura metálica
+```
+
+---
+
+## 📂 Enlace Simbólico de Storage
+
+### **Configuración del Storage Link**
 ```bash
-# Comando para generar respaldos
-mysqldump -u usuario -p fabrica_biodegradable > backup/$(date +%Y_%m_%d)_tech_home.sql
-
-# Restaurar desde respaldo
-mysql -u usuario -p fabrica_biodegradable < backup/2025_08_19_tech_home.sql
+# Crear enlace simbólico desde storage/app/public a public/storage
+php artisan storage:link
 ```
 
-### **Estructura de Respaldos**
-- ✅ **Respaldos diarios** automáticos
-- ✅ **Nomenclatura estándar** con fecha
-- ✅ **Compresión** para optimizar espacio
-- ✅ **Retención** de 30 días por defecto
+### **Estructura de `public/storage/`**
+```
+storage/ -> ../storage/app/public/
+├── 📁 maquinas/
+│   ├── maquina_001_foto.jpg
+│   ├── maquina_002_foto.png
+│   └── ...
+├── 📁 usuarios/
+│   ├── perfil_user_1.jpg
+│   ├── perfil_user_2.png
+│   └── ...
+├── 📁 reportes/
+│   ├── reporte_produccion_2025_01.pdf
+│   ├── reporte_eficiencia_2025_01.xlsx
+│   └── ...
+├── 📁 documentos/
+│   ├── manual_maquina_001.pdf
+│   ├── certificados/
+│   └── manuales/
+└── 📁 temp/
+    ├── uploads_temporales/
+    └── cache_images/
+```
 
 ---
 
-## 🏭 Factory para Testing
+## ⚡ Optimizaciones de Performance
 
-### **UserFactory**
+### **Headers de Cache**
+```apache
+# En .htaccess - Configuración agresiva de cache
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    
+    # Assets con hash - cache muy largo
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    
+    # Imágenes - cache largo
+    ExpiresByType image/* "access plus 6 months"
+    
+    # HTML - sin cache para contenido dinámico
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+```
+
+### **Compresión y Minificación**
+```javascript
+// vite.config.js - Configuración de Vite para optimización
+export default defineConfig({
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ['vue', '@inertiajs/vue3'],
+                    charts: ['chart.js'],
+                    utils: ['axios', 'lodash']
+                }
+            }
+        },
+        cssCodeSplit: true,
+        sourcemap: false, // Desactivar en producción
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true, // Remover console.log
+                drop_debugger: true
+            }
+        }
+    }
+});
+```
+
+---
+
+## 🔒 Seguridad en Archivos Públicos
+
+### **Archivos Protegidos**
+```apache
+# Denegar acceso a archivos sensibles
+<FilesMatch "\.(env|log|ini|conf|htaccess|json)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Proteger directorios sensibles
+RedirectMatch 403 ^/?(app|bootstrap|config|database|resources|storage|tests|vendor)/.*$
+```
+
+### **Validación de Uploads**
 ```php
-<?php
-
-namespace Database\Factories;
-
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
-
-class UserFactory extends Factory
-{
-    public function definition(): array
-    {
-        return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-            'activo' => true,
-            'remember_token' => Str::random(10),
-        ];
-    }
-}
+// En controladores - validar archivos subidos
+$request->validate([
+    'foto' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB máximo
+    'documento' => 'required|file|mimes:pdf,doc,docx|max:5120' // 5MB máximo
+]);
 ```
 
 ---
 
-## 🔧 Mantenimiento de Base de Datos
-
-### **Comandos Útiles**
-```bash
-# Ejecutar migraciones
-php artisan migrate
-
-# Ejecutar seeders
-php artisan db:seed
-
-# Refrescar base de datos
-php artisan migrate:refresh --seed
-
-# Verificar estado de migraciones
-php artisan migrate:status
-
-# Rollback de migraciones
-php artisan migrate:rollback
-```
-
-### **Optimizaciones**
-- ✅ **Índices** en campos de búsqueda frecuente
-- ✅ **Relaciones** optimizadas con foreign keys
-- ✅ **Soft deletes** para datos críticos
-- ✅ **Timestamps** automáticos en todas las tablas
-- ✅ **Validaciones** a nivel de base de datos
-
----
-
-*Estructura robusta de base de datos que soporta todas las operaciones del sistema de monitoreo y control de fábrica biodegradable.*
+*Configuración robusta de archivos públicos que garantiza la seguridad, performance y funcionalidad óptima del sistema de fábrica biodegradable.*
