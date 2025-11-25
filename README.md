@@ -1,664 +1,484 @@
-# Sistema de Gestión de Fábrica Biodegradable
+# 5.2.9 Sesiones del Sistema (Session Management)
 
-## 5.1 Análisis Modular de la Solución
+Incluye la gestión de sesiones de usuario, autenticación, autorización y manejo del estado de la aplicación, utilizando el sistema de sesiones nativo de Laravel con soporte para autenticación de SPA.
 
-### 🏗️ Arquitectura del Sistema
+## 📁 Estructura de Sesiones
 
-La aplicación está diseñada con una **arquitectura moderna y escalable** que conecta diferentes capas tecnológicas de manera eficiente:
+```
+├── 📁 Core/Session/
+│   ├── 📄 config/session.php - Configuración principal de sesiones
+│   ├── 📄 config/auth.php - Configuración de autenticación
+│   └── 📄 config/sanctum.php - Configuración de tokens API
+│
+├── 📁 Middleware/
+│   ├── 📄 HandleInertiaRequests.php - Middleware para Inertia.js
+│   ├── 📄 AuthenticateSession.php - Autenticación de sesiones (Sanctum)
+│   ├── 📄 EncryptCookies.php - Encriptación de cookies (Sanctum)
+│   └── 📄 ValidateCsrfToken.php - Validación CSRF (Sanctum)
+│
+├── 📁 Models/
+│   └── 📄 User.php - Modelo de usuario con autenticación
+│
+├── 📁 Database/
+│   ├── 📄 sessions table - Tabla de sesiones en BD
+│   ├── 📄 users table - Tabla de usuarios
+│   └── 📄 password_reset_tokens table - Tokens de recuperación
+│
+└── 📁 Views/
+    ├── 📄 app.blade.php - Layout principal con token CSRF
+    └── 📄 welcome.blade.php - Página de bienvenida con auth
+```
 
-#### 🛠️ Stack Tecnológico
+---
 
+## 🔧 Configuración de Sesiones
+
+### 📄 `config/session.php`
+```php
+return [
+    // Driver de sesiones: database (almacenado en BD)
+    'driver' => env('SESSION_DRIVER', 'database'),
+    
+    // Tiempo de vida: 120 minutos
+    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    
+    // Expirar al cerrar navegador
+    'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
+    
+    // Encriptación de sesiones
+    'encrypt' => env('SESSION_ENCRYPT', false),
+    
+    // Tabla de sesiones
+    'table' => env('SESSION_TABLE', 'sessions'),
+    
+    // Cookie de sesión
+    'cookie' => env('SESSION_COOKIE', 'laravel-session'),
+    
+    // Configuración de seguridad
+    'secure' => env('SESSION_SECURE_COOKIE'),
+    'http_only' => env('SESSION_HTTP_ONLY', true),
+    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+];
+```
+
+### 📄 `config/auth.php`
+```php
+return [
+    'defaults' => [
+        'guard' => env('AUTH_GUARD', 'web'),
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+    ],
+    
+    'guards' => [
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+    ],
+    
+    'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
+    ],
+];
+```
+
+### 📄 `config/sanctum.php`
+```php
+return [
+    // Dominios con estado para SPA
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 
+        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1'
+    )),
+    
+    // Guards de autenticación
+    'guard' => ['web'],
+    
+    // Middleware de Sanctum
+    'middleware' => [
+        'authenticate_session' => AuthenticateSession::class,
+        'encrypt_cookies' => EncryptCookies::class,
+        'validate_csrf_token' => ValidateCsrfToken::class,
+    ],
+];
+```
+
+---
+
+## 🔐 Autenticación y Autorización
+
+### 📄 `app/Models/User.php`
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasRoles;
+    
+    protected $fillable = [
+        'name', 'email', 'password', 'activo', 'foto_perfil',
+    ];
+    
+    protected $hidden = ['password', 'remember_token'];
+    
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'activo' => 'boolean',
+    ];
+    
+    // Relaciones específicas del sistema
+    public function produccionesOperador()
+    {
+        return $this->hasMany(Produccion::class, 'operador_id');
+    }
+    
+    public function produccionesEncargado()
+    {
+        return $this->hasMany(Produccion::class, 'encargado_id');
+    }
+}
+```
+
+### 🛡️ Middleware de Sesión
+
+#### 📄 `app/Http/Middleware/HandleInertiaRequests.php`
+```php
+<?php
+
+namespace App\Http\Middleware;
+
+use Inertia\Middleware;
+
+class HandleInertiaRequests extends Middleware
+{
+    protected $rootView = 'app';
+    
+    public function share(Request $request): array
+    {
+        return [
+            ...parent::share($request),
+            // Compartir datos de sesión con frontend
+            'auth' => [
+                'user' => $request->user(),
+            ],
+            'flash' => [
+                'success' => fn() => $request->session()->get('success'),
+                'error' => fn() => $request->session()->get('error'),
+            ],
+        ];
+    }
+}
+```
+
+---
+
+## 💾 Base de Datos de Sesiones
+
+### 📄 Tabla `sessions`
+```sql
+CREATE TABLE sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent TEXT NULL,
+    payload LONGTEXT NOT NULL,
+    last_activity INT NOT NULL,
+    
+    INDEX sessions_user_id_index (user_id),
+    INDEX sessions_last_activity_index (last_activity)
+);
+```
+
+### 📄 Tabla `users`
+```sql
+CREATE TABLE users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    email_verified_at TIMESTAMP NULL,
+    password VARCHAR(255) NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    foto_perfil VARCHAR(255) NULL,
+    remember_token VARCHAR(100) NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL
+);
+```
+
+### 📄 Tabla `password_reset_tokens`
+```sql
+CREATE TABLE password_reset_tokens (
+    email VARCHAR(255) PRIMARY KEY,
+    token VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NULL
+);
+```
+
+---
+
+## 🌐 Rutas con Autenticación
+
+### 📄 `routes/web.php`
+```php
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+// Rutas públicas
+Route::get('/', function () {
+    return redirect('/welcome');
+});
+
+Route::get('/welcome', [WelcomeController::class, 'index'])
+    ->name('welcome');
+
+// Rutas protegidas por autenticación
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
+    
+    Route::resource('maquinas', MaquinaController::class);
+    
+    Route::prefix('planta')->name('planta.')->group(function () {
+        Route::get('/monitor-maquina', [MonitorMaquinaController::class, 'index'])
+            ->name('monitor-maquina.index');
+        Route::get('/monitor-maquina/{maquina}', [MonitorMaquinaController::class, 'show'])
+            ->name('monitor-maquina.show');
+    });
+});
+```
+
+### 📄 `routes/api.php`
+```php
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+// Ruta protegida por Sanctum
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+// Rutas de API para simulación (sin autenticación)
+Route::post('/simular-produccion', [SimulacionController::class, 'simularProduccion']);
+Route::get('/maquina/{maquina}/estado', [MonitorMaquinaController::class, 'getEstado']);
+Route::put('/maquina/{maquina}/estado', [MaquinaEstadoController::class, 'updateEstado']);
+```
+
+---
+
+## 🎨 Vistas con Autenticación
+
+### 📄 `resources/views/app.blade.php`
+```php
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <title>{{ config('app.name', 'Fábrica Biodegradable') }}</title>
+    
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @inertiaHead
+</head>
+<body class="antialiased">
+    @inertia
+</body>
+</html>
+```
+
+### 📄 `resources/views/welcome.blade.php`
+```php
+@if (Route::has('login'))
+    <nav class="flex items-center justify-end gap-4">
+        @auth
+            <a href="{{ url('/dashboard') }}" class="...">
+                Dashboard
+            </a>
+        @else
+            <a href="{{ route('login') }}" class="...">
+                Log in
+            </a>
+            
+            @if (Route::has('register'))
+                <a href="{{ route('register') }}" class="...">
+                    Register
+                </a>
+            @endif
+        @endauth
+    </nav>
+@endif
+```
+
+---
+
+## ⚙️ Variables de Entorno
+
+### 📄 `.env`
+```env
+# Configuración de sesiones
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+SESSION_SECURE_COOKIE=false
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+SESSION_PARTITIONED_COOKIE=false
+
+# Configuración de autenticación
+AUTH_GUARD=web
+AUTH_PASSWORD_BROKER=users
+AUTH_MODEL=App\Models\User
+AUTH_PASSWORD_TIMEOUT=10800
+
+# Configuración de Sanctum
+SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1
+
+# Configuración de la aplicación
+APP_NAME="Fábrica Biodegradable"
+APP_ENV=local
+APP_KEY=base64:...
+APP_URL=http://127.0.0.1:8000
+APP_LOCALE=es
+```
+
+---
+
+## 🚀 Configuración del Bootstrap
+
+### 📄 `bootstrap/app.php`
+```php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+```
+
+---
+
+## 🔄 Flujo de Sesión
+
+### 1. **Inicio de Sesión**
 ```mermaid
 graph TD
-    A[🌐 Frontend<br/>Vue 3 + Inertia.js] --> B[⚡ Backend<br/>Laravel 12]
-    B --> C[📡 Broadcasting<br/>Laravel Reverb]
-    B --> D[🗄️ Database<br/>MySQL 8.0]
+    A[Usuario accede] --> B{¿Tiene sesión?}
+    B -->|Sí| C[Validar sesión]
+    B -->|No| D[Mostrar welcome]
+    C --> E{¿Válida?}
+    E -->|Sí| F[Acceder a dashboard]
+    E -->|No| D
+    D --> G[Login/Register]
+    G --> H[Crear sesión]
+    H --> F
 ```
 
-**Frontend:**
-- **Vue 3** con Composition API para interfaces reactivas
-- **Inertia.js v2** para SPA sin API separada
-- **TailwindCSS v4** para diseño responsivo y moderno
+### 2. **Gestión de Estado**
+- **Sesiones**: Almacenadas en base de datos
+- **Tokens CSRF**: Para protección contra ataques
+- **Cookies**: Encriptadas y seguras
+- **API Tokens**: Sanctum para autenticación de API
 
-**Backend:**
-- **Laravel 12** como framework principal
-- **PHP 8.4** con tipado estricto y rendimiento optimizado
-- **Laravel Sanctum** para autenticación API
-- **Spatie Permissions** para control de roles y permisos
-
-**Tiempo Real:**
-- **Laravel Reverb** para WebSockets nativos
-- **Broadcasting Events** para actualizaciones en vivo
-
-**Base de Datos:**
-- **MySQL 8.0** con relaciones optimizadas
-- **Migraciones versionadas** para control de esquema
-- **Seeders** para datos de prueba y producción
+### 3. **Middleware Stack**
+1. **EncryptCookies** - Encripta cookies
+2. **ValidateCsrfToken** - Valida tokens CSRF
+3. **HandleInertiaRequests** - Maneja requests de Inertia
+4. **AuthenticateSession** - Autentica sesiones API
 
 ---
 
-### 📦 Módulos Principales del Sistema
+## 🛠️ Herramientas y Características
 
-#### 1. **Módulo de Máquinas** 🏭
-**Ubicación:** `app/Models/Maquina.php`, `app/Http/Controllers/MaquinaController.php`
+### **Laravel Sanctum**
+- Autenticación para SPA
+- Tokens API sin estado
+- Protección CSRF
+- Dominios con estado configurables
 
-**Responsabilidades:**
-- Gestión del inventario de maquinaria industrial
-- Control de estados operativos (Operativa, Mantenimiento, Fuera de servicio)
-- Clasificación por tipos (Inyección, Extrusión, Soplado, etc.)
-- Seguimiento de horas de trabajo y ubicación en planta
+### **Spatie Permission**
+- Gestión de roles y permisos
+- Integración con User model
+- Cache de permisos
+- Middleware de autorización
 
-**Entidades Relacionadas:**
-- `TipoMaquina` - Clasificación de equipos
-- `MaquinaEstadoVivo` - Estado en tiempo real
-- `Produccion` - Registro de actividad productiva
+### **Inertia.js**
+- SPA sin API
+- Compartir datos de sesión
+- Redirecciones automáticas
+- Manejo de formularios
 
-#### 2. **Módulo de Producción** 📊
-**Ubicación:** `app/Services/ProduccionService.php`, `app/Models/Produccion.php`
-
-**Responsabilidades:**
-- Registro de producción por turnos
-- Cálculo de KPIs (OEE, velocidad, rendimiento)
-- Gestión de lotes de productos terminados
-- Consumo de materias primas por producción
-
-**Funcionalidades Clave:**
-- Simulación de producción para pruebas
-- Tracking de incrementos de kilogramos producidos
-- Análisis de eficiencia operacional
-
-#### 3. **Módulo de Materias Primas** 🧪
-**Ubicación:** `app/Models/MateriaPrima.php`, `app/Models/LoteMateriaPrima.php`
-
-**Responsabilidades:**
-- Inventario de materiales biodegradables
-- Trazabilidad por lotes con fechas de vencimiento
-- Control de stock y alertas de reposición
-- Gestión de proveedores especializados
-
-#### 4. **Módulo de Monitoreo en Tiempo Real** 📡
-**Ubicación:** `app/Http/Controllers/Planta/MonitorMaquinaController.php`
-
-**Responsabilidades:**
-- Dashboard en vivo del estado de máquinas
-- Eventos de broadcasting automático
-- Alertas y notificaciones instantáneas
-- Métricas operacionales en tiempo real
+### **Session Storage**
+- Driver: Database
+- Encriptación opcional
+- Limpieza automática
+- Configuración flexible
 
 ---
 
-### 🔄 Flujo de Datos y Procesos
+## 📊 Monitoreo y Logs
 
-#### **Proceso de Producción**
-```mermaid
-sequenceDiagram
-    participant Operador
-    participant Sistema
-    participant Simulador
-    participant Broadcasting
-    
-    Operador->>Sistema: Inicia producción
-    Sistema->>Simulador: Genera datos automáticos
-    Simulador->>Sistema: Envía incrementos KG/OEE
-    Sistema->>Broadcasting: Emite evento estado actualizado
-    Broadcasting->>Dashboard: Actualización en vivo
+### **Session Tracking**
+```php
+// En controllers
+Log::info('Usuario autenticado', [
+    'user_id' => auth()->id(),
+    'session_id' => session()->getId(),
+    'ip' => request()->ip()
+]);
 ```
 
-#### **Gestión de Estados de Máquina**
-1. **Registro Inicial:** Nueva máquina → `MaquinaEstadoVivo`
-2. **Simulación:** Datos generados → `ProduccionService`
-3. **Broadcasting:** Evento → Todos los dashboards conectados
-4. **Persistencia:** Base de datos → Histórico completo
-
----
-
-### 📊 Datos Generados Automáticamente
-
-El sistema incluye un **simulador inteligente** que genera datos realistas:
-
-| 📏 **Métrica** | 🎯 **Rango Simulado** | 💡 **¿Por qué este rango?** |
-|---|---|---|
-| **Kg Producidos** | 0,1 - 2,5 kg | Incrementos realistas por ciclo |
-| **Velocidad** | 80% - 120% | Variación normal de máquinas |
-| **OEE** | 70% - 95% | Rango típico industrial |
-| **Tiempo Ciclo** | 10 - 30 seg | Velocidad de máquinas reales |
-
-#### 🎯 **¿Para qué sirve?**
-- ✅ **Desarrollo seguro** - Prueba cambios sin afectar producción real
-- 📈 **Demostración** - Muestra el sistema funcionando a clientes
-- 🎓 **Entrenamiento** - Capacita usuarios sin riesgo
-- 🔍 **Depuración** - Encuentra problemas antes del despliegue
-
-> 💡 **Consejo:** Deja el simulador corriendo mientras desarrollas, ¡verás el sistema cobrar vida! ✨
-
----
-
-### 🏛️ Arquitectura por Capas
-
-#### **Capa de Presentación** (Frontend)
-```
-resources/js/
-├── Components/     # Componentes reutilizables Vue
-├── Pages/          # Páginas de aplicación
-└── Layouts/        # Plantillas base
-```
-
-#### **Capa de Lógica de Negocio** (Backend)
-```
-app/
-├── Http/Controllers/   # Controladores de rutas
-├── Services/          # Lógica de negocio
-├── Models/           # Eloquent ORM
-└── Events/           # Eventos del sistema
-```
-
-#### **Capa de Datos**
-```
-database/
-├── migrations/    # Esquema de base de datos
-├── seeders/      # Datos de prueba
-└── factories/    # Generadores de datos
-```
-
----
-
-### 🔐 Seguridad y Permisos
-
-#### **Sistema de Roles**
-- **Administrador:** Control total del sistema
-- **Gerente:** Supervisión y reportes
-- **Encargado de Planta:** Operaciones diarias
-- **Operador:** Uso específico de máquinas
-
-#### **Autenticación**
-- Laravel Sanctum para APIs seguras
-- Middleware de autenticación en todas las rutas críticas
-- Tokens de sesión para frontend
-
----
-
-### 📈 Escalabilidad y Rendimiento
-
-#### **Optimizaciones Implementadas**
-- **Eager Loading:** Previene consultas N+1
-- **Broadcasting Eficiente:** Solo datos necesarios
-- **Índices de Base de Datos:** Consultas optimizadas
-- **Caché de Configuración:** Arranque rápido
-
-#### **Preparado para Crecer**
-- Arquitectura por servicios expandible
-- Base de datos relacional normalizada
-- APIs RESTful estándar
-- Contenedorización con Docker (opcional)
-
----
-
-### 🛠️ Comandos de Desarrollo
-
+### **Limpieza de Sesiones**
 ```bash
-# Configuración inicial
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-
-# Desarrollo
-npm run dev              # Frontend en desarrollo
-php artisan serve       # Servidor Laravel
-php artisan reverb:start # WebSockets
-
-# Producción
-npm run build           # Compilar frontend
-php artisan config:cache # Optimizar configuración
+# Comando para limpiar sesiones expiradas
+php artisan session:gc
 ```
 
 ---
 
-### 🎯 Beneficios del Diseño Modular
+## 🔒 Seguridad
 
-✅ **Mantenibilidad:** Cada módulo tiene responsabilidades claras
-✅ **Escalabilidad:** Fácil agregar nuevas funcionalidades  
-✅ **Testabilidad:** Componentes independientes y probables
-✅ **Reutilización:** Servicios compartidos entre módulos
-✅ **Flexibilidad:** Arquitectura adaptable a cambios de negocio
+### **Configuraciones de Seguridad**
+- **HTTPS Only**: Para producción
+- **HTTP Only**: Prevenir acceso JS malicioso
+- **SameSite**: Protección CSRF
+- **Secure Cookie**: Solo HTTPS
+- **Session Timeout**: 120 minutos por defecto
 
----
-
-## 5.2 Propuesta Tecnológica y Justificación de la Arquitectura
-
-### 🎯 Análisis Comparativo de Tecnologías
-
-#### **Frontend: ¿Por qué Vue 3 + Inertia.js?**
-
-| 🔍 **Criterio** | ⚡ **Vue 3 + Inertia** | ⚛️ **React + Next.js** | 🅰️ **Angular** | ✅ **Decisión** |
-|---|---|---|---|---|
-| **Curva de Aprendizaje** | Baja - Sintaxis intuitiva | Media - JSX y hooks | Alta - TypeScript obligatorio | Vue 3 ✅ |
-| **Rendimiento** | Excelente - Composition API | Excelente - Virtual DOM | Bueno - Change Detection | Vue 3 ✅ |
-| **Ecosistema Laravel** | Nativo - Inertia oficial | Terceros - APIs separadas | Terceros - APIs REST | Vue 3 ✅ |
-| **Bundle Size** | 34KB min+gzip | 42KB min+gzip | 130KB+ min+gzip | Vue 3 ✅ |
-| **Documentación** | Excelente en español | Buena en inglés | Extensa pero compleja | Vue 3 ✅ |
-
-#### **Backend: ¿Por qué Laravel 12?**
-
-| 🔍 **Aspecto** | 🎵 **Laravel 12** | 🟢 **Node.js + Express** | 🐍 **Django** | 🟦 **ASP.NET Core** | ✅ **Ganador** |
-|---|---|---|---|---|---|
-| **Productividad** | Muy Alta - Artisan CLI | Media - Config manual | Alta - Admin automático | Media - Boilerplate | Laravel ✅ |
-| **ORM Integrado** | Eloquent - Relaciones fáciles | Sequelize/Prisma - Setup | Django ORM - Pythónico | Entity Framework - Robusto | Laravel ✅ |
-| **Real-time** | Reverb nativo | Socket.io popular | Channels básico | SignalR maduro | Laravel ✅ |
-| **Testing** | PHPUnit integrado | Jest + Supertest | PyTest potente | xUnit establecido | Empate |
-| **Deploy** | Forge/Vapor simple | PM2/Docker común | Gunicorn/uWSGI | Azure nativo | Laravel ✅ |
-
-### 🏗️ Arquitectura Tecnológica Detallada
-
-#### **Stack Principal vs Alternativas**
-
-| 🛠️ **Capa** | 🎯 **Tecnología Elegida** | 📊 **Versión** | 🔄 **Alternativas Evaluadas** | 💡 **Razón de Elección** |
-|---|---|---|---|---|
-| **Frontend Framework** | Vue.js | 3.5.24 | React 18, Angular 17, Svelte | Simplicidad + Ecosistema Laravel |
-| **SPA Bridge** | Inertia.js | 2.2.18 | API REST, GraphQL, Livewire | Sin duplicación de rutas |
-| **CSS Framework** | TailwindCSS | 4.0.0 | Bootstrap, Bulma, Chakra | Utility-first + Customizable |
-| **Backend Framework** | Laravel | 12.0 | Symfony, CodeIgniter, Lumen | Convenciones + Productividad |
-| **Database** | MySQL | 8.0 | PostgreSQL, SQLite, MongoDB | Familiaridad + Soporte |
-| **Real-time** | Laravel Reverb | 1.0 | Pusher, Socket.io, WebSockets | Nativo Laravel + Sin costos |
-
-### 📊 Justificación por Rendimiento
-
-#### **Métricas de Rendimiento Comparativas**
-
-| 📈 **Métrica** | 🎵 **Laravel + Vue** | ⚛️ **Node.js + React** | 🐍 **Django + Vue** | 📊 **Benchmark** |
-|---|---|---|---|---|
-| **Tiempo de Carga Inicial** | 1.2s | 0.9s | 1.5s | ⚡ Muy Bueno |
-| **Memory Usage (Idle)** | 45MB | 35MB | 60MB | 🟢 Aceptable |
-| **Requests/sec (1 core)** | 1,200 | 2,800 | 800 | 📊 Suficiente |
-| **Time to Interactive** | 1.8s | 1.5s | 2.2s | ✅ Competitivo |
-| **Bundle Size (gzipped)** | 85KB | 95KB | 90KB | 🎯 Optimizado |
-
-> 💡 **Nota:** Para aplicaciones empresariales, la productividad de desarrollo supera micro-optimizaciones de rendimiento.
-
-### 🔧 Configuración del Entorno de Desarrollo
-
-#### **Herramientas de Build y Deploy**
-
-| 🛠️ **Herramienta** | 📦 **Propósito** | ⚙️ **Configuración** | 🎯 **Beneficio** |
-|---|---|---|---|
-| **Vite** | Build tool frontend | Hot reload + ES modules | Desarrollo ultrarrápido |
-| **Laravel Pint** | Code formatter PHP | PSR-12 + Laravel style | Código consistente |
-| **Composer** | Dependency manager PHP | Lock file + autoload | Dependencias estables |
-| **NPM** | Dependency manager JS | Package.json versionado | Frontend predecible |
-| **PHPUnit** | Testing framework | Feature + Unit tests | Calidad asegurada |
-
-#### **Arquitectura de Broadcasting en Tiempo Real**
-
-| 🎯 **Característica** | 🟢 **Laravel Reverb** | 🟦 **Pusher** | 🟣 **Socket.io** | ✅ **Ventaja Reverb** |
-|---|---|---|---|---|
-| **Costo Mensual** | $0 (Self-hosted) | $49+ (Pro plan) | $0 (Self-hosted) | Sin costos recurrentes |
-| **Integración Laravel** | Nativa - 0 config | Oficial - Minimal config | Terceros - Custom bridge | Plug & play |
-| **Escalabilidad** | Redis cluster support | Auto-scaling | Manual clustering | Escalable + Simple |
-| **Debugging** | Laravel Telescope | External dashboard | Custom logging | Debug integrado |
-| **SSL/Security** | Laravel middleware | Built-in encryption | Manual setup | Seguridad heredada |
-
-### 🗄️ Diseño de Base de Datos
-
-#### **Comparación de Motores de Base de Datos**
-
-| 🔍 **Criterio** | 🐬 **MySQL 8.0** | 🐘 **PostgreSQL 15** | 📄 **SQLite** | 📊 **Resultado** |
-|---|---|---|---|---|
-| **JSON Support** | Bueno - JSON columns | Excelente - JSONB | Básico - TEXT | PostgreSQL, pero MySQL suficiente |
-| **Full-Text Search** | Bueno - MyISAM/InnoDB | Excelente - GIN indexes | Básico - LIKE queries | MySQL adecuado |
-| **Concurrency** | Muy buena - InnoDB | Excelente - MVCC | Limitada - File locks | MySQL ✅ |
-| **Learning Curve** | Baja - Popular | Media - Más features | Muy baja - Embedded | MySQL ✅ |
-| **Ecosystem** | Amplio - Hosting común | Creciente - Cloud native | Limitado - Dev only | MySQL ✅ |
-
-#### **Schema de Tablas Principales**
-
-| 📋 **Tabla** | 🔑 **Primary Key** | 🔗 **Foreign Keys** | 📊 **Índices Adicionales** | 🎯 **Propósito** |
-|---|---|---|---|---|
-| `maquinas` | id (BIGINT) | tipo_maquina_id | codigo (UNIQUE), estado | Inventario equipos |
-| `producciones` | id (BIGINT) | maquina_id, producto_id | turno, fecha_inicio | Registro productivo |
-| `maquinas_estado_vivo` | id (BIGINT) | maquina_id (UNIQUE) | updated_at | Estado tiempo real |
-| `materias_primas` | id (BIGINT) | proveedor_id | codigo (UNIQUE), activo | Catálogo materiales |
-| `lotes_materia_prima` | id (BIGINT) | materia_prima_id | fecha_vencimiento, stock | Control inventario |
-
-### ⚡ Optimizaciones de Rendimiento
-
-#### **Estrategias de Caché Implementadas**
-
-| 🚀 **Tipo de Caché** | 🛠️ **Tecnología** | ⏱️ **TTL** | 📊 **Hit Rate** | 🎯 **Caso de Uso** |
-|---|---|---|---|---|
-| **Configuración** | File Cache | Permanente | 100% | Config compilada producción |
-| **Rutas** | File Cache | Permanente | 100% | Route:cache en deploy |
-| **Vistas** | File Cache | Permanente | 95% | Blade templates compilados |
-| **Query Cache** | MySQL | 1 hora | 80% | Consultas repetitivas |
-| **Session** | File/Redis | 24 horas | 90% | Estados de usuario |
-
-#### **Optimizaciones de Consultas SQL**
-
-| 🔍 **Problema** | 🛠️ **Solución Implementada** | 📈 **Mejora** | 🔧 **Técnica** |
-|---|---|---|---|
-| **N+1 Queries** | Eager Loading with() | 90% menos consultas | `with('tipo', 'estadoVivo')` |
-| **Conteos lentos** | withCount() method | 50% más rápido | `withCount('producciones')` |
-| **Joins complejos** | Eloquent Relationships | Código 80% más limpio | `belongsTo()`, `hasMany()` |
-| **Filtros dinámicos** | Query Scopes | Reutilización 100% | `scopeActivas()` |
-| **Paginación pesada** | Cursor Pagination | Sin OFFSET penalty | `cursorPaginate()` |
-
-### 🔐 Arquitectura de Seguridad
-
-#### **Capas de Seguridad Implementadas**
-
-| 🛡️ **Capa** | 🔧 **Implementación** | 🎯 **Protege Contra** | 📊 **Nivel** |
-|---|---|---|---|
-| **Autenticación** | Laravel Sanctum | Acceso no autorizado | Alto |
-| **Autorización** | Spatie Permissions | Escalada de privilegios | Alto |
-| **CSRF** | Laravel Token | Cross-site requests | Alto |
-| **SQL Injection** | Eloquent ORM | Inyección maliciosa | Crítico |
-| **XSS** | Blade Templating | Scripts maliciosos | Alto |
-| **Rate Limiting** | Laravel Throttle | DoS/Brute force | Medio |
-
-#### **Roles y Permisos del Sistema**
-
-| 👤 **Rol** | 🔑 **Permisos** | 🎯 **Acceso Dashboard** | 📊 **Nivel Datos** | 🛠️ **Funciones** |
-|---|---|---|---|---|
-| **Administrador** | Todos los permisos | Completo | Global | CRUD total + Configuración |
-| **Gerente** | Ver reportes + Exportar | Analítico | Todas las plantas | Reportes + Supervisión |
-| **Encargado Planta** | Gestionar producción | Operacional | Su planta | Monitor + Turnos |
-| **Operador** | Ver máquinas asignadas | Básico | Sus máquinas | Solo lectura + Alertas |
-
-### 📱 Responsividad y UX
-
-#### **Breakpoints y Dispositivos Soportados**
-
-| 📱 **Dispositivo** | 📐 **Resolución** | 🎨 **Layout** | 📊 **% Usuarios** | 🎯 **Prioridad** |
-|---|---|---|---|---|
-| **Desktop** | 1920x1080+ | 3 columnas + Sidebar | 65% | Alta |
-| **Laptop** | 1366x768 | 2 columnas + Sidebar | 25% | Alta |
-| **Tablet** | 768x1024 | 1 columna + Menu | 8% | Media |
-| **Mobile** | 375x667 | Stack + Drawer | 2% | Baja |
-
-> 📊 **Estrategia:** Mobile-first CSS con progressive enhancement para escritorio.
-
-#### **Performance Budget por Dispositivo**
-
-| 🎯 **Métrica** | 💻 **Desktop** | 📱 **Mobile** | ⚡ **Target** | 📊 **Actual** |
-|---|---|---|---|---|
-| **First Paint** | < 1.0s | < 2.0s | Excelente | 0.8s / 1.6s |
-| **Interactive** | < 2.0s | < 4.0s | Bueno | 1.8s / 3.2s |
-| **Bundle JS** | < 100KB | < 80KB | Óptimo | 85KB |
-| **Bundle CSS** | < 50KB | < 30KB | Óptimo | 28KB |
-
-### 🚀 Estrategia de Deployment
-
-#### **Entornos y Configuraciones**
-
-| 🌍 **Entorno** | 🛠️ **Propósito** | ⚙️ **Configuración** | 📊 **Recursos** | 🔄 **Deploy** |
-|---|---|---|---|---|
-| **Development** | Desarrollo local | Sqlite + Vite dev | Mínimos | Manual |
-| **Staging** | Testing pre-prod | MySQL + Build prod | Medios | Git hooks |
-| **Production** | Sistema en vivo | MySQL + Caché + CDN | Completos | CI/CD |
-
-#### **Tecnologías de Containerización**
-
-| 🐳 **Opción** | 💰 **Costo** | 🔧 **Complejidad** | 📊 **Escalabilidad** | ✅ **Recomendación** |
-|---|---|---|---|---|
-| **Docker Compose** | Gratuito | Baja | Limitada | Desarrollo + Staging |
-| **Kubernetes** | Variable | Alta | Excelente | Producción enterprise |
-| **Laravel Forge** | $12/mes | Mínima | Buena | Recomendado startups |
-| **Laravel Vapor** | $39/mes | Mínima | Excelente | Serverless AWS |
-
-### 🎯 Conclusión de la Propuesta
-
-#### **Ventajas Competitivas de la Arquitectura**
-
-| ✅ **Beneficio** | 🎯 **Impacto Técnico** | 📊 **Impacto Negocio** | ⏱️ **Time to Market** |
-|---|---|---|---|
-| **Desarrollo Rápido** | Laravel conventions | Funcionalidades más rápido | -40% tiempo desarrollo |
-| **Mantenimiento Simple** | Monolito modular | Menos bugs en producción | -60% tiempo debugging |
-| **Escalabilidad Horizontal** | Stateless + Redis | Soporta crecimiento | Sin rediseño arquitectura |
-| **Real-time Updates** | WebSockets nativos | UX moderna competitiva | Diferenciación inmediata |
-| **Costo Operativo Bajo** | Self-hosted stack | ROI mayor | -70% costos cloud |
+### **Protecciones Implementadas**
+- ✅ **CSRF Protection** - Tokens en formularios
+- ✅ **Session Fixation** - Regeneración de ID
+- ✅ **Cookie Security** - Flags de seguridad
+- ✅ **XSS Prevention** - Escape automático
+- ✅ **SQL Injection** - Eloquent ORM
 
 ---
 
-## 5.3 Plan de Aseguramiento de la Calidad del Proyecto
-
-### 📋 **Plan de Gestión de la Calidad**
-*Basado en normas ISO e IEEE para el desarrollo de software de sistemas industriales*
-
----
-
-### 1️⃣ **Planificación de Calidad**
-
-#### **📊 Alcance del SQA**
-*Cumplimiento de estándares internacionales para sistemas críticos industriales*
-
-| 🎯 **Área de Aplicación** | 📋 **Norma de Referencia** | 🔍 **Objetivo de Calidad** | 📊 **Criterio de Aceptación** |
-|---|---|---|---|
-| **Gestión de Requisitos** | ISO 25010:2011 | Funcionalidad completa | 100% casos de uso cubiertos |
-| **Arquitectura del Software** | ISO/IEC 42010:2011 | Mantenibilidad alta | Cohesión > 80%, Acoplamiento < 20% |
-| **Métricas de Código** | ISO 25023:2016 | Código limpio y eficiente | Complexity Score < 10, Coverage > 85% |
-| **Procesos de Desarrollo** | IEEE 12207:2017 | Trazabilidad completa | 100% artefactos versionados |
-| **Gestión de Configuración** | IEEE 828:2012 | Control de cambios robusto | Zero downtime deployments |
-
-#### **🛠️ Herramientas Automáticas de Calidad**
-
-| 🔧 **Herramienta** | 📝 **Propósito** | 🎯 **Norma Aplicada** | ⚙️ **Configuración** | 📊 **Umbral Calidad** |
-|---|---|---|---|---|
-| **Laravel Pint** | Code formatting | PSR-12, Laravel Standards | `.pint.json` | 100% compliance |
-| **PHPStan/Larastan** | Static analysis | ISO 25010 - Reliability | `phpstan.neon` | Level 8/8 |
-| **PHPUnit** | Unit testing | IEEE 829:2008 | `phpunit.xml` | >85% coverage |
-| **Pest Testing** | Feature testing | IEEE 29119:2013 | `pest.php` | 100% features tested |
-| **Laravel Telescope** | Runtime monitoring | ISO 25010 - Performance | Built-in dashboard | < 200ms response |
-| **Composer Audit** | Security scanning | ISO 27001:2013 | Automated checks | Zero vulnerabilities |
-
-#### **👥 Roles y Responsabilidades (IEEE 730)**
-
-| 👤 **Rol** | 📋 **Responsabilidades SQA** | 🎯 **Deliverables** | 📊 **Criterios Evaluación** |
-|---|---|---|---|
-| **Tech Lead** | Arquitectura y estándares | Design documents, Code reviews | Compliance checklist |
-| **Senior Developer** | Implementación y mentoring | Feature modules, Unit tests | Code quality metrics |
-| **QA Engineer** | Testing y validación | Test plans, Bug reports | Test coverage reports |
-| **DevOps Engineer** | CI/CD y monitoreo | Pipeline configs, Monitoring | Deployment success rate |
-| **Product Owner** | Validación funcional | Acceptance criteria, UAT | User story completion |
-
----
-
-### 2️⃣ **Garantía y Control de Procesos**
-
-#### **🔍 Revisiones por Pares (IEEE 1028)**
-
-| 📝 **Tipo de Revisión** | 🎯 **Artefacto** | 👥 **Participantes** | 📊 **Criterios Aprobación** |
-|---|---|---|---|
-| **Architectural Review** | Sistema de módulos | Tech Lead + 2 Senior Devs | Patrones SOLID, Separation of concerns |
-| **Code Review** | Pull requests | Author + 1 Reviewer | PSR-12, Tests incluidos, Documentation |
-| **Security Review** | Features sensibles | Security specialist + Lead | OWASP Top 10 compliance |
-| **Performance Review** | Consultas críticas | DBA + Backend Lead | Query optimization, N+1 prevention |
-
-#### **🔄 Control de Cambios (ISO 9001)**
-
-```mermaid
-flowchart LR
-    A[🎫 Issue Creation] --> B[📋 Requirements Analysis]
-    B --> C[🎯 Impact Assessment]
-    C --> D[✅ Approval Process]
-    D --> E[🔧 Implementation]
-    E --> F[🧪 Testing Phase]
-    F --> G[📦 Deployment]
-    G --> H[📊 Monitoring]
-```
-
-#### **📝 Registro de No Conformidades**
-
-| 🚨 **Tipo de Incidencia** | 🔍 **Detección** | 🛠️ **Proceso Corrección** | 📊 **SLA Resolución** |
-|---|---|---|---|
-| **Critical Bug** | Automated testing / Production | Hotfix immediate | < 2 horas |
-| **Security Vulnerability** | Security scan / Report | Emergency patch | < 4 horas |
-| **Performance Issue** | Monitoring / User report | Performance optimization | < 24 horas |
-| **Feature Regression** | Regression testing | Rollback + Fix | < 8 horas |
-
-#### **🔍 Auditorías Internas**
-
-| 📅 **Frecuencia** | 🎯 **Área Evaluada** | 📋 **Checklist** | 📊 **Métricas** |
-|---|---|---|---|
-| **Semanal** | Code quality | Pint compliance, Test coverage | > 85% coverage |
-| **Quincenal** | Security compliance | Dependency vulnerabilities, Auth | Zero high-risk issues |
-| **Mensual** | Performance benchmarks | Response times, Database optimization | < 200ms avg response |
-| **Trimestral** | Architecture compliance | SOLID principles, Design patterns | Architecture decision compliance |
-
----
-
-### 3️⃣ **Verificación y Validación**
-
-#### **📋 Plan de Pruebas (IEEE 829 / ISO 29119)**
-
-| 🧪 **Nivel de Prueba** | 🎯 **Objetivo** | 🛠️ **Herramientas** | 📊 **Criterios Éxito** |
-|---|---|---|---|
-| **Unit Testing** | Lógica individual componentes | PHPUnit, Pest | >85% code coverage |
-| **Integration Testing** | APIs y servicios | Laravel HTTP Tests | 100% endpoints tested |
-| **Feature Testing** | Funcionalidades completas | Pest Feature Tests | 100% user stories covered |
-| **Performance Testing** | Carga y rendimiento | Laravel Benchmarking | <200ms response time |
-| **Security Testing** | Vulnerabilidades | OWASP ZAP, Composer Audit | Zero security issues |
-
-#### **🎯 Casos de Prueba por Módulo**
-
-| 📦 **Módulo** | 🧪 **Unit Tests** | 🔗 **Integration Tests** | 🎯 **Feature Tests** | 📊 **Coverage Target** |
-|---|---|---|---|---|
-| **Máquinas** | Model validation, State transitions | API endpoints CRUD | Machine lifecycle | 90% |
-| **Producción** | OEE calculations, Service logic | Broadcasting events | Production workflow | 95% |
-| **Materias Primas** | Stock management, Expiry dates | Supplier integrations | Inventory tracking | 85% |
-| **Monitoreo** | Real-time data processing | WebSocket connections | Dashboard updates | 80% |
-| **Autenticación** | Role permissions, Access control | Login/logout flows | User management | 100% |
-
-#### **🔄 Ejecución Automatizada**
-
-```yaml
-# GitHub Actions CI/CD Pipeline
-name: Quality Assurance Pipeline
-on: [push, pull_request]
-
-jobs:
-  quality-gate:
-    - Code formatting (Pint)
-    - Static analysis (PHPStan)
-    - Unit tests (PHPUnit)
-    - Feature tests (Pest)
-    - Security scan (Composer Audit)
-    - Performance baseline
-```
-
-#### **✅ Validación con el Cliente (IEEE 1012)**
-
-| 🎯 **Fase Validación** | 👥 **Stakeholders** | 📋 **Deliverables** | ✅ **Criterios Aceptación** |
-|---|---|---|---|
-| **Prototipo Inicial** | Product Owner, End Users | UI mockups, Core workflows | Usability > 80% satisfaction |
-| **Beta Release** | Key users, Operations team | Working system, Documentation | Feature completeness 100% |
-| **Production Acceptance** | All stakeholders | Live system, Training materials | Performance SLA compliance |
-
----
-
-### 4️⃣ **Configuración y Entrega**
-
-#### **🔧 Control de Versiones (IEEE 828)**
-
-| 🏷️ **Elemento Configuración** | 📂 **Repositorio** | 🔄 **Estrategia Branching** | 📊 **Política Releases** |
-|---|---|---|---|
-| **Source Code** | Git (GitHub) | GitFlow con feature branches | Semantic versioning |
-| **Database Schema** | Laravel Migrations | Sequential numbered migrations | Rollback capability |
-| **Dependencies** | Composer.lock, package-lock.json | Lock file versioning | Security updates automated |
-| **Configuration** | Environment files | Template-based configs | Zero-downtime deployment |
-| **Documentation** | Markdown in repo | Version-controlled docs | Auto-generated API docs |
-
-#### **🚀 CI/CD Pipeline**
-
-| 🔄 **Stage** | 🛠️ **Acciones** | ✅ **Gates de Calidad** | 📊 **Métricas Éxito** |
-|---|---|---|---|
-| **Build** | Composer install, NPM build | Dependency resolution | Zero build errors |
-| **Test** | PHPUnit, Pest, Static analysis | All tests pass | >85% coverage maintained |
-| **Security** | Vulnerability scanning | No high-risk issues | OWASP compliance |
-| **Deploy** | Laravel deployment | Health checks pass | <30s deployment time |
-| **Monitor** | Application monitoring | Performance thresholds | <200ms response time |
-
-#### **📦 Control de Artefactos**
-
-| 📋 **Artefacto** | 🏷️ **Versionado** | 📦 **Almacenamiento** | 🔍 **Trazabilidad** |
-|---|---|---|---|
-| **Application Builds** | Git SHA + Timestamp | Docker Registry | Git commit linkage |
-| **Database Releases** | Migration timestamps | SQL dump backups | Schema change log |
-| **Static Assets** | Content hash | CDN versioning | Build manifest |
-| **Configuration Files** | Environment tags | Secure vault | Deployment correlation |
-
----
-
-### 5️⃣ **Medición y Mejora Continua**
-
-#### **📊 Métricas de Calidad (ISO 25023)**
-
-| 📈 **Categoría** | 📊 **Métrica** | 🎯 **Target** | 📋 **Frecuencia Medición** | 🛠️ **Herramienta** |
-|---|---|---|---|---|
-| **Funcionalidad** | Feature completion rate | 100% user stories | Sprint review | Jira/Linear |
-| **Confiabilidad** | Bug escape rate | <2% to production | Continuous | Bug tracking |
-| **Rendimiento** | Response time average | <200ms | Real-time | Laravel Telescope |
-| **Usabilidad** | User satisfaction score | >80% | Monthly surveys | User feedback |
-| **Mantenibilidad** | Code complexity score | <10 cyclomatic | Daily | PHPStan analysis |
-| **Seguridad** | Vulnerability count | Zero high-risk | Weekly scans | Security tools |
-
-#### **📋 Reportes de Calidad**
-
-| 📅 **Frecuencia** | 👥 **Audiencia** | 📊 **Contenido** | 🎯 **Objetivo** |
-|---|---|---|---|
-| **Diario** | Development Team | Build status, Test results | Quick feedback loop |
-| **Semanal** | Technical Leads | Code metrics, Performance | Trend analysis |
-| **Mensual** | Project Management | Quality dashboards | Milestone tracking |
-| **Trimestral** | Stakeholders | Quality assessment | Strategic planning |
-
-#### **🔄 Retrospectivas y Mejoras (ISO 9001)**
-
-```mermaid
-graph LR
-    A[📊 Collect Metrics] --> B[🔍 Analyze Trends]
-    B --> C[🎯 Identify Issues]
-    C --> D[💡 Plan Improvements]
-    D --> E[🛠️ Implement Changes]
-    E --> F[📈 Measure Impact]
-    F --> A
-```
-
-#### **📈 KPIs del Proyecto**
-
-| 🎯 **KPI** | 📊 **Valor Actual** | 🎯 **Target** | 📈 **Tendencia** | 🔄 **Acción Requerida** |
-|---|---|---|---|---|
-| **Code Coverage** | 88% | >85% | ↗️ Mejorando | Mantener estándares |
-| **Bug Density** | 0.8/KLOC | <1.0/KLOC | ↘️ Reduciendo | Excelente calidad |
-| **Response Time** | 145ms | <200ms | → Estable | Optimizar consultas pesadas |
-| **Security Issues** | 0 High-risk | 0 | ✅ Cumplido | Continuar monitoreo |
-| **Deployment Success** | 98% | >95% | ↗️ Mejorando | Automatizar rollback |
-
-#### **📝 Cierre del Proyecto**
-
-| 📋 **Entregable** | ✅ **Estado** | 📊 **Criterio Calidad** | 🎯 **Responsable** |
-|---|---|---|---|
-| **Código Fuente** | Completo | 100% documentado y testeado | Tech Lead |
-| **Documentación** | Actualizada | User manual + API docs | Technical Writer |
-| **Tests Automatizados** | Funcionando | >85% coverage mantenido | QA Engineer |
-| **Sistema Productivo** | Desplegado | SLA cumplido 99.9% uptime | DevOps Lead |
-| **Transferencia Conocimiento** | Realizada | Equipo capacitado 100% | Project Manager |
-
----
-
-### 📚 **Referencias Normativas**
-
-#### **Estándares Internacionales Aplicados**
-
-| 📋 **Norma** | 🎯 **Área de Aplicación** | 📊 **Nivel Cumplimiento** |
-|---|---|---|
-| **ISO 9001:2015** | Gestión de Calidad | Implementación completa |
-| **ISO/IEC 25010:2011** | Calidad de Software | Características aplicadas |
-| **ISO/IEC 25023:2016** | Métricas de Calidad | Framework de medición |
-| **ISO 27001:2013** | Seguridad de la Información | Controles implementados |
-| **IEEE 730:2014** | Planes de Calidad Software | Estructura seguida |
-| **IEEE 829:2008** | Documentación de Testing | Templates utilizados |
-| **IEEE 1012:2016** | Verificación y Validación | Procesos establecidos |
-| **IEEE 1028:2008** | Revisiones de Software | Procedimientos definidos |
-
----
-
-*Este Plan de Aseguramiento de la Calidad garantiza la entrega de un sistema industrial robusto, confiable y mantenible, cumpliendo con los más altos estándares internacionales de desarrollo de software.*
+*Sistema de sesiones robusto y seguro para la gestión de usuarios en la aplicación de fábrica biodegradable, utilizando las mejores prácticas de Laravel y herramientas modernas de autenticación.*
