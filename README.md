@@ -1,780 +1,691 @@
-# 5.2.4 Recursos del Frontend (Resources)
+# 5.2.5 Rutas del Sistema (Routes)
 
-Contiene todos los recursos del frontend del sistema, incluyendo hojas de estilo, JavaScript, componentes Vue.js con Inertia.js y vistas Blade para la interfaz de usuario del sistema de fábrica biodegradable.
+Contiene la definición de todas las rutas del sistema, incluyendo rutas web, API, canales de broadcasting y comandos de consola para el sistema de fábrica biodegradable.
 
-## 📁 Estructura de Recursos
+## 📁 Estructura de Rutas
 
 ```
-├── 📁 css/
-│   └── 📄 app.css - Estilos principales con Tailwind CSS
-│
-├── 📁 js/
-│   ├── 📄 app.js - Configuración principal de la aplicación Vue/Inertia
-│   ├── 📄 bootstrap.js - Configuración inicial de librerías
-│   ├── 📁 Components/
-│   │   ├── 📄 ApplicationLogo.vue - Logo de la aplicación
-│   │   ├── 📄 DashboardCard.vue - Tarjetas del dashboard
-│   │   ├── 📄 MaquinaEstadoCard.vue - Tarjeta de estado de máquina
-│   │   ├── 📄 GraficaProduccion.vue - Gráfica de producción
-│   │   ├── 📄 AlertaComponent.vue - Componente de alertas
-│   │   └── 📄 NavigationMenu.vue - Menú de navegación
-│   ├── 📁 Layouts/
-│   │   ├── 📄 AppLayout.vue - Layout principal de la aplicación
-│   │   ├── 📄 GuestLayout.vue - Layout para usuarios no autenticados
-│   │   └── 📄 AuthenticatedLayout.vue - Layout para usuarios autenticados
-│   └── 📁 Pages/
-│       ├── 📄 Welcome.vue - Página de bienvenida
-│       ├── 📄 Dashboard.vue - Dashboard principal del sistema
-│       ├── 📁 Maquinas/
-│       │   ├── 📄 Index.vue - Lista de máquinas
-│       │   ├── 📄 Create.vue - Formulario de creación
-│       │   ├── 📄 Edit.vue - Formulario de edición
-│       │   └── 📄 Show.vue - Detalles de máquina
-│       └── 📁 Planta/
-│           ├── 📄 MonitorMaquinaIndex.vue - Lista de monitores
-│           └── 📄 MonitorMaquinaShow_NEW.vue - Monitor en tiempo real
-│
-└── 📁 views/
-    ├── 📄 app.blade.php - Layout base de Blade/Inertia
-    └── 📄 welcome.blade.php - Vista de bienvenida estática
+├── 📄 web.php - Rutas web principales de la aplicación
+├── 📄 api.php - Rutas de API REST para servicios externos
+├── 📄 channels.php - Canales de broadcasting en tiempo real
+└── 📄 console.php - Comandos de consola personalizados
 ```
 
 ---
 
-## 🎨 Estilos y Diseño
+## 🌐 Rutas Web (Interface de Usuario)
 
-### 📄 `resources/css/app.css`
-```css
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+### 📄 `routes/web.php`
+```php
+<?php
 
-/* Estilos personalizados para la aplicación */
-:root {
-    --color-primary: #22c55e;
-    --color-secondary: #064e3b;
-    --color-accent: #fbbf24;
-    --color-warning: #f59e0b;
-    --color-danger: #ef4444;
-    --color-success: #10b981;
-}
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MaquinaController;
+use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\Planta\MonitorMaquinaController;
+use Illuminate\Support\Facades\Route;
 
-/* Estilos para componentes de máquinas */
-.maquina-card {
-    @apply bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow;
-}
+/*
+|--------------------------------------------------------------------------
+| Rutas Web
+|--------------------------------------------------------------------------
+|
+| Rutas para la interfaz web del sistema usando Inertia.js
+| Todas las rutas retornan componentes Vue.js renderizados
+|
+*/
 
-.maquina-estado-activo {
-    @apply bg-green-100 border-green-300 text-green-800;
-}
+// Ruta raíz - Redirección a welcome
+Route::get('/', function () {
+    return redirect('/welcome');
+});
 
-.maquina-estado-parada {
-    @apply bg-red-100 border-red-300 text-red-800;
-}
+// Página de bienvenida pública
+Route::get('/welcome', [WelcomeController::class, 'index'])
+    ->name('welcome');
 
-.maquina-estado-mantenimiento {
-    @apply bg-yellow-100 border-yellow-300 text-yellow-800;
-}
-
-/* Estilos para dashboard */
-.dashboard-metric {
-    @apply bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg;
-}
-
-.dashboard-metric-value {
-    @apply text-3xl font-bold mb-2;
-}
-
-.dashboard-metric-label {
-    @apply text-green-100 text-sm uppercase tracking-wide;
-}
-
-/* Estilos para gráficas */
-.chart-container {
-    @apply bg-white rounded-lg shadow p-6 border border-gray-200;
-}
-
-/* Animaciones personalizadas */
-@keyframes pulse-green {
-    0%, 100% {
-        @apply bg-green-500;
-    }
-    50% {
-        @apply bg-green-400;
-    }
-}
-
-.maquina-produciendo {
-    animation: pulse-green 2s ease-in-out infinite;
-}
-
-/* Estilos para formularios */
-.form-input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-           focus:outline-none focus:ring-green-500 focus:border-green-500;
-}
-
-.form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
-}
-
-.btn-primary {
-    @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 
-           rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 
-           focus:ring-offset-2 transition-colors;
-}
-
-.btn-secondary {
-    @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 
-           rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 
-           focus:ring-offset-2 transition-colors;
-}
-
-/* Estilos responsive */
-@media (max-width: 640px) {
-    .maquina-card {
-        @apply p-4;
-    }
+// ===== RUTAS PROTEGIDAS POR AUTENTICACIÓN =====
+Route::middleware(['auth', 'verified'])->group(function () {
     
-    .dashboard-metric {
-        @apply p-4;
-    }
-}
-```
+    // Dashboard principal del sistema
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
 
----
+    // ===== GESTIÓN DE MÁQUINAS =====
+    Route::resource('maquinas', MaquinaController::class)->names([
+        'index' => 'maquinas.index',         // GET /maquinas
+        'create' => 'maquinas.create',       // GET /maquinas/create
+        'store' => 'maquinas.store',         // POST /maquinas
+        'show' => 'maquinas.show',           // GET /maquinas/{id}
+        'edit' => 'maquinas.edit',           // GET /maquinas/{id}/edit
+        'update' => 'maquinas.update',       // PUT/PATCH /maquinas/{id}
+        'destroy' => 'maquinas.destroy'      // DELETE /maquinas/{id}
+    ]);
 
-## ⚙️ Configuración de JavaScript
-
-### 📄 `resources/js/app.js`
-```javascript
-import './bootstrap';
-import '../css/app.css';
-
-import { createApp, h } from 'vue';
-import { createInertiaApp } from '@inertiajs/vue3';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { ZiggyVue } from '../../vendor/tightenco/ziggy';
-
-const appName = import.meta.env.VITE_APP_NAME || 'Fábrica Biodegradable';
-
-createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
-    setup({ el, App, props, plugin }) {
-        return createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .use(ZiggyVue)
-            .mount(el);
-    },
-    progress: {
-        color: '#22c55e',
-        includeCSS: true,
-        showSpinner: true,
-    },
-});
-```
-
-### 📄 `resources/js/bootstrap.js`
-```javascript
-import axios from 'axios';
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
-
-// Configuración de Axios
-window.axios = axios;
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-
-// Configurar token CSRF
-let token = document.head.querySelector('meta[name="csrf-token"]');
-if (token) {
-    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
-}
-
-// Configuración de Laravel Echo para tiempo real
-window.Pusher = Pusher;
-
-window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-});
-```
-
----
-
-## 🏗️ Layouts de la Aplicación
-
-### 📄 `resources/js/Layouts/AppLayout.vue`
-```vue
-<template>
-    <div class="min-h-screen bg-gray-100">
-        <!-- Navegación superior -->
-        <nav class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex items-center">
-                        <ApplicationLogo class="h-8 w-auto" />
-                        <span class="ml-3 text-xl font-semibold text-gray-900">
-                            Fábrica Biodegradable
-                        </span>
-                    </div>
-                    
-                    <NavigationMenu :user="$page.props.auth.user" />
-                </div>
-            </div>
-        </nav>
-
-        <!-- Contenido principal -->
-        <main class="py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <!-- Alertas -->
-                <div v-if="$page.props.flash.success" class="mb-4">
-                    <AlertaComponent type="success" :message="$page.props.flash.success" />
-                </div>
-                
-                <div v-if="$page.props.flash.error" class="mb-4">
-                    <AlertaComponent type="error" :message="$page.props.flash.error" />
-                </div>
-
-                <!-- Slot para contenido de la página -->
-                <slot />
-            </div>
-        </main>
-    </div>
-</template>
-
-<script setup>
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import NavigationMenu from '@/Components/NavigationMenu.vue';
-import AlertaComponent from '@/Components/AlertaComponent.vue';
-</script>
-```
-
-### 📄 `resources/js/Layouts/AuthenticatedLayout.vue`
-```vue
-<template>
-    <div class="min-h-screen bg-gray-100">
-        <!-- Sidebar -->
-        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0"
-             :class="{ '-translate-x-full': !sidebarOpen }">
-            <div class="flex items-center justify-center h-16 bg-green-600">
-                <ApplicationLogo class="h-8 w-auto text-white" />
-                <span class="ml-2 text-lg font-semibold text-white">Panel Admin</span>
-            </div>
-            
-            <nav class="mt-8">
-                <div class="px-4 space-y-2">
-                    <Link :href="route('dashboard')" 
-                          class="sidebar-link" 
-                          :class="{ 'sidebar-link-active': $page.component === 'Dashboard' }">
-                        📊 Dashboard
-                    </Link>
-                    
-                    <Link :href="route('maquinas.index')" 
-                          class="sidebar-link"
-                          :class="{ 'sidebar-link-active': $page.component.startsWith('Maquinas') }">
-                        ⚙️ Máquinas
-                    </Link>
-                    
-                    <Link :href="route('planta.monitor-maquina.index')" 
-                          class="sidebar-link"
-                          :class="{ 'sidebar-link-active': $page.component.startsWith('Planta') }">
-                        📈 Monitor Planta
-                    </Link>
-                </div>
-            </nav>
-        </div>
-
-        <!-- Contenido principal -->
-        <div class="lg:pl-64">
-            <!-- Header -->
-            <div class="bg-white shadow-sm border-b border-gray-200">
-                <div class="px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center py-4">
-                        <button @click="sidebarOpen = !sidebarOpen" 
-                                class="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                            ☰
-                        </button>
-                        
-                        <h1 class="text-2xl font-semibold text-gray-900">{{ title }}</h1>
-                        
-                        <div class="flex items-center space-x-4">
-                            <span class="text-sm text-gray-600">{{ user.name }}</span>
-                            <form @submit.prevent="logout" class="inline">
-                                <button type="submit" class="text-sm text-red-600 hover:text-red-800">
-                                    Cerrar Sesión
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contenido de la página -->
-            <main class="p-6">
-                <slot />
-            </main>
-        </div>
-    </div>
-</template>
-
-<script setup>
-import { ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-
-defineProps({
-    title: String,
-    user: Object
-});
-
-const sidebarOpen = ref(false);
-
-const logout = () => {
-    router.post('/logout');
-};
-</script>
-
-<style scoped>
-.sidebar-link {
-    @apply flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:text-gray-900 hover:bg-gray-50;
-}
-
-.sidebar-link-active {
-    @apply bg-green-50 text-green-700 border-r-2 border-green-600;
-}
-</style>
-```
-
----
-
-## 🎯 Páginas Principales
-
-### 📄 `resources/js/Pages/Dashboard.vue`
-```vue
-<template>
-    <AppLayout>
-        <Head title="Dashboard" />
+    // ===== MÓDULO DE PLANTA =====
+    Route::prefix('planta')->name('planta.')->group(function () {
         
-        <div class="space-y-6">
-            <!-- Métricas principales -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <DashboardCard 
-                    title="Producción Hoy"
-                    :value="estadisticas.produccion_hoy"
-                    unit="kg"
-                    icon="📦"
-                    color="green"
-                />
-                
-                <DashboardCard 
-                    title="Máquinas Activas"
-                    :value="estadisticas.maquinas_activas"
-                    :total="estadisticas.total_maquinas"
-                    icon="⚙️"
-                    color="blue"
-                />
-                
-                <DashboardCard 
-                    title="OEE Promedio"
-                    :value="estadisticas.oee_promedio"
-                    unit="%"
-                    icon="📊"
-                    color="yellow"
-                />
-                
-                <DashboardCard 
-                    title="Eficiencia"
-                    :value="estadisticas.eficiencia"
-                    unit="%"
-                    icon="⚡"
-                    color="purple"
-                />
-            </div>
-
-            <!-- Estados de máquinas -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-medium text-gray-900">Estado de Máquinas</h2>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-                    <MaquinaEstadoCard 
-                        v-for="maquina in estadosMaquinas"
-                        :key="maquina.maquina_id"
-                        :maquina="maquina"
-                        @ver-detalle="verDetalleMaquina"
-                    />
-                </div>
-            </div>
-
-            <!-- Gráfica de producción -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-medium text-gray-900">Producción por Máquina</h2>
-                </div>
-                
-                <div class="p-6">
-                    <GraficaProduccion :data="produccionPorMaquina" />
-                </div>
-            </div>
-        </div>
-    </AppLayout>
-</template>
-
-<script setup>
-import { Head, router } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import DashboardCard from '@/Components/DashboardCard.vue';
-import MaquinaEstadoCard from '@/Components/MaquinaEstadoCard.vue';
-import GraficaProduccion from '@/Components/GraficaProduccion.vue';
-
-defineProps({
-    estadisticas: Object,
-    estadosMaquinas: Array,
-    produccionPorMaquina: Array
-});
-
-const verDetalleMaquina = (maquinaId) => {
-    router.get(`/planta/monitor-maquina/${maquinaId}`);
-};
-</script>
-```
-
-### 📄 `resources/js/Pages/Maquinas/Index.vue`
-```vue
-<template>
-    <AppLayout>
-        <Head title="Máquinas" />
+        // Monitor de máquinas en tiempo real
+        Route::get('/monitor-maquina', [MonitorMaquinaController::class, 'index'])
+            ->name('monitor-maquina.index');
         
-        <div class="space-y-6">
-            <!-- Header -->
-            <div class="flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-gray-900">Gestión de Máquinas</h1>
-                <Link :href="route('maquinas.create')" class="btn-primary">
-                    ➕ Nueva Máquina
-                </Link>
-            </div>
+        Route::get('/monitor-maquina/{maquina}', [MonitorMaquinaController::class, 'show'])
+            ->name('monitor-maquina.show');
+    });
 
-            <!-- Filtros -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="form-label">Buscar por nombre</label>
-                        <input v-model="filtros.nombre" 
-                               type="text" 
-                               class="form-input" 
-                               placeholder="Nombre de máquina...">
-                    </div>
-                    
-                    <div>
-                        <label class="form-label">Tipo de máquina</label>
-                        <select v-model="filtros.tipo" class="form-input">
-                            <option value="">Todos los tipos</option>
-                            <option value="Extrusora">Extrusora</option>
-                            <option value="Mezcladora">Mezcladora</option>
-                            <option value="Prensa">Prensa</option>
-                        </select>
-                    </div>
-                    
-                    <div class="flex items-end">
-                        <button @click="limpiarFiltros" class="btn-secondary">
-                            🗑️ Limpiar
-                        </button>
-                    </div>
-                </div>
-            </div>
+    // ===== GESTIÓN DE PRODUCCIÓN =====
+    Route::prefix('produccion')->name('produccion.')->group(function () {
+        Route::get('/', [ProduccionController::class, 'index'])->name('index');
+        Route::get('/crear', [ProduccionController::class, 'create'])->name('create');
+        Route::post('/', [ProduccionController::class, 'store'])->name('store');
+        Route::get('/{produccion}', [ProduccionController::class, 'show'])->name('show');
+    });
 
-            <!-- Lista de máquinas -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                Código
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                Nombre
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                Tipo
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                Capacidad
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                Estado
-                            </th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="maquina in maquinasFiltradas" :key="maquina.id" class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ maquina.codigo }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ maquina.nombre }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ maquina.tipo.nombre }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ maquina.capacidad_maxima }} kg/h
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                      :class="getEstadoClass(maquina.estado)">
-                                    {{ maquina.estado || 'Sin estado' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div class="flex justify-end space-x-2">
-                                    <Link :href="route('maquinas.show', maquina.id)" 
-                                          class="text-green-600 hover:text-green-900">
-                                        👁️ Ver
-                                    </Link>
-                                    <Link :href="route('maquinas.edit', maquina.id)" 
-                                          class="text-blue-600 hover:text-blue-900">
-                                        ✏️ Editar
-                                    </Link>
-                                    <button @click="eliminarMaquina(maquina.id)" 
-                                            class="text-red-600 hover:text-red-900">
-                                        🗑️ Eliminar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </AppLayout>
-</template>
-
-<script setup>
-import { ref, computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-
-const props = defineProps({
-    maquinas: Array
-});
-
-const filtros = ref({
-    nombre: '',
-    tipo: ''
-});
-
-const maquinasFiltradas = computed(() => {
-    return props.maquinas.filter(maquina => {
-        const matchNombre = !filtros.value.nombre || 
-            maquina.nombre.toLowerCase().includes(filtros.value.nombre.toLowerCase());
-        const matchTipo = !filtros.value.tipo || 
-            maquina.tipo.nombre === filtros.value.tipo;
+    // ===== GESTIÓN DE INVENTARIO =====
+    Route::prefix('inventario')->name('inventario.')->group(function () {
+        // Materias primas
+        Route::resource('materias-primas', MateriaPrimaController::class);
+        Route::resource('lotes-materia-prima', LoteMateriaPrimaController::class);
         
-        return matchNombre && matchTipo;
+        // Productos
+        Route::resource('productos', ProductoController::class);
+        Route::resource('lotes-productos', LoteProductoController::class);
+        
+        // Proveedores
+        Route::resource('proveedores', ProveedorController::class);
+    });
+
+    // ===== GESTIÓN DE MANTENIMIENTO =====
+    Route::prefix('mantenimiento')->name('mantenimiento.')->group(function () {
+        Route::resource('programados', MantenimientoController::class);
+        Route::resource('paradas', ParadaController::class);
+        
+        // Reportes de mantenimiento
+        Route::get('/reportes', [MantenimientoController::class, 'reportes'])->name('reportes');
+        Route::get('/calendario', [MantenimientoController::class, 'calendario'])->name('calendario');
+    });
+
+    // ===== RECETAS Y FÓRMULAS =====
+    Route::prefix('recetas')->name('recetas.')->group(function () {
+        Route::resource('/', RecetaController::class)->parameters(['' => 'receta']);
+        Route::get('/{receta}/detalles', [RecetaController::class, 'detalles'])->name('detalles');
+        Route::post('/{receta}/duplicar', [RecetaController::class, 'duplicar'])->name('duplicar');
+    });
+
+    // ===== REPORTES Y ANALYTICS =====
+    Route::prefix('reportes')->name('reportes.')->group(function () {
+        Route::get('/', [ReporteController::class, 'index'])->name('index');
+        Route::get('/produccion', [ReporteController::class, 'produccion'])->name('produccion');
+        Route::get('/eficiencia', [ReporteController::class, 'eficiencia'])->name('eficiencia');
+        Route::get('/calidad', [ReporteController::class, 'calidad'])->name('calidad');
+        Route::get('/costos', [ReporteController::class, 'costos'])->name('costos');
+        
+        // Exportaciones
+        Route::post('/exportar/{tipo}', [ReporteController::class, 'exportar'])->name('exportar');
+    });
+
+    // ===== ADMINISTRACIÓN DEL SISTEMA =====
+    Route::prefix('admin')->name('admin.')->middleware(['role:Administrador'])->group(function () {
+        // Gestión de usuarios
+        Route::resource('usuarios', UsuarioController::class);
+        Route::post('/usuarios/{usuario}/toggle-status', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle-status');
+        
+        // Configuración del sistema
+        Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion');
+        Route::post('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
+        
+        // Logs del sistema
+        Route::get('/logs', [LogController::class, 'index'])->name('logs');
+        Route::get('/logs/{archivo}', [LogController::class, 'show'])->name('logs.show');
     });
 });
 
-const limpiarFiltros = () => {
-    filtros.value = { nombre: '', tipo: '' };
-};
-
-const getEstadoClass = (estado) => {
-    switch(estado) {
-        case 'Activa': return 'bg-green-100 text-green-800';
-        case 'Parada': return 'bg-red-100 text-red-800';
-        case 'Mantenimiento': return 'bg-yellow-100 text-yellow-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-};
-
-const eliminarMaquina = (id) => {
-    if (confirm('¿Está seguro de eliminar esta máquina?')) {
-        router.delete(route('maquinas.destroy', id));
-    }
-};
-</script>
+// ===== RUTAS DE AUTENTICACIÓN =====
+require __DIR__.'/auth.php';
 ```
 
 ---
 
-## 🧩 Componentes Reutilizables
+## 🔌 Rutas API (Servicios REST)
 
-### 📄 `resources/js/Components/MaquinaEstadoCard.vue`
-```vue
-<template>
-    <div class="maquina-card" :class="getCardClass()">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">{{ maquina.maquina.nombre }}</h3>
-            <span class="indicator" :class="getIndicatorClass()"></span>
-        </div>
-        
-        <div class="space-y-2 text-sm text-gray-600">
-            <div>Código: <span class="font-medium">{{ maquina.maquina.codigo }}</span></div>
-            <div>Producido: <span class="font-medium text-green-600">{{ maquina.kg_producidos }} kg</span></div>
-            <div>OEE: <span class="font-medium">{{ maquina.oee_actual }}%</span></div>
-            <div>Velocidad: <span class="font-medium">{{ maquina.velocidad_actual }} kg/h</span></div>
-        </div>
-        
-        <div class="mt-4 flex justify-end">
-            <button @click="$emit('ver-detalle', maquina.maquina_id)" 
-                    class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
-                Ver Monitor
-            </button>
-        </div>
-    </div>
-</template>
+### 📄 `routes/api.php`
+```php
+<?php
 
-<script setup>
-defineProps({
-    maquina: Object
+use App\Http\Controllers\Api\SimulacionController;
+use App\Http\Controllers\Api\MaquinaEstadoController;
+use App\Http\Controllers\Api\ProduccionApiController;
+use App\Http\Controllers\Planta\MonitorMaquinaController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Rutas API
+|--------------------------------------------------------------------------
+|
+| Rutas para servicios REST y integraciones externas
+| Algunas rutas requieren autenticación con Laravel Sanctum
+|
+*/
+
+// ===== RUTA DE USUARIO AUTENTICADO =====
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+// ===== SIMULACIÓN DE PRODUCCIÓN (Sin autenticación) =====
+Route::prefix('simulacion')->group(function () {
+    // Endpoint principal para simuladores externos
+    Route::post('/produccion', [SimulacionController::class, 'simularProduccion'])
+        ->name('api.simulacion.produccion');
+    
+    // Configuración de simulación
+    Route::get('/configuracion', [SimulacionController::class, 'configuracion'])
+        ->name('api.simulacion.config');
+    
+    // Estado de simulación
+    Route::get('/estado', [SimulacionController::class, 'estado'])
+        ->name('api.simulacion.estado');
+    
+    // Detener simulación
+    Route::post('/detener', [SimulacionController::class, 'detener'])
+        ->name('api.simulacion.detener');
 });
 
-defineEmits(['ver-detalle']);
+// ===== ESTADOS DE MÁQUINAS =====
+Route::prefix('maquinas')->group(function () {
+    // Estado actual de una máquina específica
+    Route::get('/{maquina}/estado', [MonitorMaquinaController::class, 'getEstado'])
+        ->name('api.maquina.estado');
+    
+    // Actualizar estado de máquina (Protegido)
+    Route::put('/{maquina}/estado', [MaquinaEstadoController::class, 'updateEstado'])
+        ->middleware('auth:sanctum')
+        ->name('api.maquina.update-estado');
+    
+    // Configurar modo simulación
+    Route::put('/{maquina}/simulacion', [MaquinaEstadoController::class, 'updateSimulacion'])
+        ->middleware('auth:sanctum')
+        ->name('api.maquina.simulacion');
+    
+    // Historial de estados
+    Route::get('/{maquina}/historial', [MaquinaEstadoController::class, 'historial'])
+        ->middleware('auth:sanctum')
+        ->name('api.maquina.historial');
+});
 
-const getCardClass = () => {
-    const estado = maquina.estado || 'parada';
-    return {
-        'border-green-300': estado === 'produciendo',
-        'border-red-300': estado === 'parada',
-        'border-yellow-300': estado === 'mantenimiento'
-    };
-};
+// ===== PRODUCCIÓN API (Protegidas) =====
+Route::middleware('auth:sanctum')->prefix('produccion')->group(function () {
+    // Estadísticas de producción
+    Route::get('/estadisticas', [ProduccionApiController::class, 'estadisticas'])
+        ->name('api.produccion.estadisticas');
+    
+    // Producción por período
+    Route::get('/periodo', [ProduccionApiController::class, 'porPeriodo'])
+        ->name('api.produccion.periodo');
+    
+    // OEE por máquina
+    Route::get('/oee/{maquina}', [ProduccionApiController::class, 'oeeByMaquina'])
+        ->name('api.produccion.oee');
+    
+    // Eficiencia general
+    Route::get('/eficiencia', [ProduccionApiController::class, 'eficiencia'])
+        ->name('api.produccion.eficiencia');
+    
+    // Crear nuevo registro de producción
+    Route::post('/', [ProduccionApiController::class, 'store'])
+        ->name('api.produccion.store');
+});
 
-const getIndicatorClass = () => {
-    const estado = maquina.estado || 'parada';
-    return {
-        'bg-green-500': estado === 'produciendo',
-        'bg-red-500': estado === 'parada',
-        'bg-yellow-500': estado === 'mantenimiento'
-    };
-};
-</script>
+// ===== INVENTARIO API (Protegidas) =====
+Route::middleware('auth:sanctum')->prefix('inventario')->group(function () {
+    // Stock de materias primas
+    Route::get('/materias-primas/stock', [InventarioApiController::class, 'stockMateriasPrimas'])
+        ->name('api.inventario.stock-mp');
+    
+    // Stock de productos
+    Route::get('/productos/stock', [InventarioApiController::class, 'stockProductos'])
+        ->name('api.inventario.stock-productos');
+    
+    // Movimientos de inventario
+    Route::post('/movimientos', [InventarioApiController::class, 'registrarMovimiento'])
+        ->name('api.inventario.movimiento');
+    
+    // Alertas de stock bajo
+    Route::get('/alertas', [InventarioApiController::class, 'alertas'])
+        ->name('api.inventario.alertas');
+});
 
-<style scoped>
-.indicator {
-    @apply w-3 h-3 rounded-full;
-}
-</style>
+// ===== MANTENIMIENTO API (Protegidas) =====
+Route::middleware('auth:sanctum')->prefix('mantenimiento')->group(function () {
+    // Próximos mantenimientos
+    Route::get('/proximos', [MantenimientoApiController::class, 'proximos'])
+        ->name('api.mantenimiento.proximos');
+    
+    // Registrar parada de máquina
+    Route::post('/paradas', [MantenimientoApiController::class, 'registrarParada'])
+        ->name('api.mantenimiento.parada');
+    
+    // Finalizar mantenimiento
+    Route::patch('/finalizar/{mantenimiento}', [MantenimientoApiController::class, 'finalizar'])
+        ->name('api.mantenimiento.finalizar');
+});
+
+// ===== NOTIFICACIONES API (Protegidas) =====
+Route::middleware('auth:sanctum')->prefix('notificaciones')->group(function () {
+    // Obtener notificaciones del usuario
+    Route::get('/', [NotificacionApiController::class, 'index'])
+        ->name('api.notificaciones.index');
+    
+    // Marcar como leída
+    Route::patch('/{notificacion}/leida', [NotificacionApiController::class, 'marcarLeida'])
+        ->name('api.notificaciones.leida');
+    
+    // Marcar todas como leídas
+    Route::patch('/todas/leidas', [NotificacionApiController::class, 'marcarTodasLeidas'])
+        ->name('api.notificaciones.todas-leidas');
+});
+
+// ===== WEBHOOKS (Sin autenticación pero con validación) =====
+Route::prefix('webhooks')->group(function () {
+    // Webhook para sistemas externos
+    Route::post('/produccion', [WebhookController::class, 'produccion'])
+        ->middleware('webhook.signature')
+        ->name('api.webhook.produccion');
+    
+    // Webhook para sensores IoT
+    Route::post('/sensores', [WebhookController::class, 'sensores'])
+        ->middleware('webhook.signature')
+        ->name('api.webhook.sensores');
+});
+
+// ===== HEALTH CHECK =====
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now(),
+        'version' => config('app.version', '1.0.0'),
+        'environment' => config('app.env')
+    ]);
+})->name('api.health');
+
+// ===== METRICS PARA MONITOREO =====
+Route::get('/metrics', [MetricsController::class, 'prometheus'])
+    ->middleware('metrics.auth')
+    ->name('api.metrics');
 ```
 
 ---
 
-## 📱 Vistas Blade
+## 📡 Canales de Broadcasting
 
-### 📄 `resources/views/app.blade.php`
+### 📄 `routes/channels.php`
 ```php
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+<?php
 
-    <title inertia>{{ config('app.name', 'Fábrica Biodegradable') }}</title>
+use Illuminate\Support\Facades\Broadcast;
 
-    <!-- Favicon -->
-    <link rel="icon" href="{{ asset('favicon.ico') }}">
+/*
+|--------------------------------------------------------------------------
+| Canales de Broadcasting
+|--------------------------------------------------------------------------
+|
+| Definición de canales para eventos en tiempo real usando Laravel Echo
+| y Laravel Reverb para WebSockets
+|
+*/
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+// ===== CANAL PÚBLICO DE PRODUCCIÓN =====
+// Canal para transmitir actualizaciones de producción en tiempo real
+Broadcast::channel('produccion', function ($user) {
+    // Canal público - cualquier usuario autenticado puede escuchar
+    return $user ? true : false;
+});
 
-    <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @inertiaHead
-</head>
-<body class="font-sans antialiased">
-    @inertia
-</body>
-</html>
-```
+// ===== CANALES DE MÁQUINAS =====
+// Canal específico para cada máquina individual
+Broadcast::channel('maquina.{maquinaId}', function ($user, $maquinaId) {
+    // Verificar que el usuario tenga permiso para ver esta máquina
+    return $user && $user->can('ver_monitor_maquinas');
+});
 
-### 📄 `resources/views/welcome.blade.php`
-```php
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <title>{{ config('app.name', 'Fábrica Biodegradable') }}</title>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
-    
-    <!-- Styles / Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-gray-50 text-gray-900">
-    <div class="min-h-screen flex flex-col justify-center items-center">
-        <!-- Header de navegación -->
-        @if (Route::has('login'))
-            <div class="fixed top-0 right-0 p-6 text-right">
-                @auth
-                    <a href="{{ url('/dashboard') }}" 
-                       class="font-semibold text-green-600 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md px-3 py-2">
-                        Dashboard
-                    </a>
-                @else
-                    <a href="{{ route('login') }}" 
-                       class="font-semibold text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md px-3 py-2">
-                        Iniciar Sesión
-                    </a>
+// Canal para todas las máquinas (dashboard general)
+Broadcast::channel('maquinas', function ($user) {
+    return $user && $user->can('ver_dashboard');
+});
 
-                    @if (Route::has('register'))
-                        <a href="{{ route('register') }}" 
-                           class="ml-4 font-semibold text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md px-3 py-2">
-                            Registrarse
-                        </a>
-                    @endif
-                @endauth
-            </div>
-        @endif
+// ===== CANALES DE ALERTAS =====
+// Canal para alertas críticas del sistema
+Broadcast::channel('alertas.criticas', function ($user) {
+    // Solo usuarios con rol de administrador o encargado
+    return $user && ($user->hasRole('Administrador') || $user->hasRole('Encargado'));
+});
 
-        <!-- Contenido principal -->
-        <div class="max-w-2xl mx-auto text-center">
-            <h1 class="text-6xl font-bold text-green-600 mb-4">🌱</h1>
-            <h2 class="text-4xl font-bold text-gray-900 mb-6">Fábrica Biodegradable</h2>
-            <p class="text-xl text-gray-600 mb-8">
-                Sistema de monitoreo y control en tiempo real para la producción sostenible
-            </p>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="text-3xl mb-4">📊</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Monitoreo en Tiempo Real</h3>
-                    <p class="text-gray-600">Seguimiento continuo de la producción y eficiencia de máquinas</p>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="text-3xl mb-4">⚙️</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Gestión de Máquinas</h3>
-                    <p class="text-gray-600">Control completo del estado y mantenimiento de equipos</p>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="text-3xl mb-4">📈</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Analytics Avanzado</h3>
-                    <p class="text-gray-600">Reportes y métricas para optimizar la producción</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+// Canal para alertas de mantenimiento
+Broadcast::channel('alertas.mantenimiento', function ($user) {
+    return $user && $user->can('gestionar_mantenimiento');
+});
+
+// Canal para alertas de calidad
+Broadcast::channel('alertas.calidad', function ($user) {
+    return $user && $user->can('control_calidad');
+});
+
+// ===== CANALES PRIVADOS DE USUARIO =====
+// Canal privado para notificaciones específicas del usuario
+Broadcast::channel('user.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+
+// Canal para el equipo/área de trabajo del usuario
+Broadcast::channel('equipo.{equipoId}', function ($user, $equipoId) {
+    return $user->equipos->contains($equipoId);
+});
+
+// ===== CANALES DE ADMINISTRACIÓN =====
+// Canal para eventos del sistema (solo administradores)
+Broadcast::channel('sistema.eventos', function ($user) {
+    return $user && $user->hasRole('Administrador');
+});
+
+// Canal para logs en tiempo real
+Broadcast::channel('sistema.logs', function ($user) {
+    return $user && $user->can('ver_logs_sistema');
+});
+
+// ===== CANALES DE REPORTES =====
+// Canal para notificar cuando un reporte está listo
+Broadcast::channel('reportes.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// ===== CANALES DE PRODUCCIÓN ESPECÍFICA =====
+// Canal para seguimiento de una producción específica
+Broadcast::channel('produccion.{produccionId}', function ($user, $produccionId) {
+    // Verificar que el usuario esté involucrado en esta producción
+    $produccion = \App\Models\Produccion::find($produccionId);
+    return $produccion && (
+        $user->id === $produccion->operador_id ||
+        $user->id === $produccion->encargado_id ||
+        $user->hasRole('Administrador')
+    );
+});
+
+// ===== CANALES DE INVENTARIO =====
+// Canal para alertas de stock bajo
+Broadcast::channel('inventario.alertas', function ($user) {
+    return $user && $user->can('gestionar_inventario');
+});
+
+// Canal para movimientos de inventario
+Broadcast::channel('inventario.movimientos', function ($user) {
+    return $user && $user->can('ver_inventario');
+});
+
+// ===== CANAL DE PRESENCIA (USUARIOS CONECTADOS) =====
+// Canal para mostrar qué usuarios están viendo el dashboard
+Broadcast::channel('dashboard.presence', function ($user) {
+    if ($user) {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'avatar' => $user->foto_perfil,
+            'role' => $user->getRoleNames()->first()
+        ];
+    }
+    return false;
+});
+
+// ===== CANALES DE SIMULACIÓN =====
+// Canal para eventos de simulación (desarrollo/testing)
+Broadcast::channel('simulacion.eventos', function ($user) {
+    return $user && (
+        config('app.env') !== 'production' || 
+        $user->hasRole('Administrador')
+    );
+});
 ```
 
 ---
 
-*Interfaz de usuario moderna y responsiva construida con Vue.js, Inertia.js y Tailwind CSS, proporcionando una experiencia fluida para el monitoreo y control del sistema de fábrica biodegradable.*
+## ⚡ Comandos de Consola
+
+### 📄 `routes/console.php`
+```php
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+/*
+|--------------------------------------------------------------------------
+| Comandos de Consola
+|--------------------------------------------------------------------------
+|
+| Comandos personalizados y programación de tareas para el sistema
+| de fábrica biodegradable
+|
+*/
+
+// ===== COMANDO DE INSPIRACIÓN =====
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote')->hourly();
+
+// ===== COMANDOS DE LIMPIEZA =====
+Artisan::command('fabrica:limpiar-datos-antiguos', function () {
+    $this->info('Limpiando datos antiguos del sistema...');
+    
+    // Limpiar producciones antiguas (más de 1 año)
+    $producciones = \App\Models\Produccion::where('created_at', '<', now()->subYear())->count();
+    \App\Models\Produccion::where('created_at', '<', now()->subYear())->delete();
+    $this->info("Eliminadas {$producciones} producciones antiguas");
+    
+    // Limpiar logs antiguos (más de 3 meses)
+    $logs = \Illuminate\Support\Facades\File::glob(storage_path('logs/*.log'));
+    $eliminados = 0;
+    foreach ($logs as $log) {
+        if (filemtime($log) < time() - (90 * 24 * 60 * 60)) {
+            unlink($log);
+            $eliminados++;
+        }
+    }
+    $this->info("Eliminados {$eliminados} archivos de log antiguos");
+    
+    $this->info('✅ Limpieza completada');
+})->purpose('Limpiar datos antiguos del sistema');
+
+// ===== COMANDOS DE MANTENIMIENTO =====
+Artisan::command('fabrica:verificar-mantenimientos', function () {
+    $this->info('Verificando mantenimientos pendientes...');
+    
+    // Buscar mantenimientos que deberían haberse realizado
+    $pendientes = \App\Models\Mantenimiento::whereNull('fecha_realizada')
+        ->where('fecha_programada', '<=', now())
+        ->count();
+    
+    if ($pendientes > 0) {
+        $this->warn("⚠️  Hay {$pendientes} mantenimientos pendientes");
+        
+        // Enviar notificación a administradores
+        $admins = \App\Models\User::role('Administrador')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\MantenimientosPendientes($pendientes));
+        }
+    } else {
+        $this->info('✅ Todos los mantenimientos están al día');
+    }
+})->purpose('Verificar mantenimientos pendientes');
+
+// ===== COMANDOS DE REPORTES =====
+Artisan::command('fabrica:generar-reporte-diario', function () {
+    $this->info('Generando reporte diario...');
+    
+    // Generar estadísticas del día
+    $estadisticas = [
+        'fecha' => now()->format('Y-m-d'),
+        'produccion_total' => \App\Models\Produccion::whereDate('created_at', today())->sum('kg_producidos'),
+        'maquinas_activas' => \App\Models\Maquina::whereHas('estadoVivo', function($q) {
+            $q->where('velocidad_actual', '>', 0);
+        })->count(),
+        'eficiencia_promedio' => \App\Models\Produccion::whereDate('created_at', today())->avg('oee'),
+    ];
+    
+    // Guardar reporte
+    \Illuminate\Support\Facades\Storage::disk('local')->put(
+        'reportes/diario-' . now()->format('Y-m-d') . '.json',
+        json_encode($estadisticas, JSON_PRETTY_PRINT)
+    );
+    
+    $this->info('✅ Reporte diario generado');
+    $this->table(['Métrica', 'Valor'], [
+        ['Producción Total', $estadisticas['produccion_total'] . ' kg'],
+        ['Máquinas Activas', $estadisticas['maquinas_activas']],
+        ['Eficiencia Promedio', round($estadisticas['eficiencia_promedio'], 2) . '%'],
+    ]);
+})->purpose('Generar reporte diario automático');
+
+// ===== COMANDOS DE SIMULACIÓN =====
+Artisan::command('fabrica:simular-produccion {maquina} {--duracion=60}', function () {
+    $maquinaId = $this->argument('maquina');
+    $duracion = $this->option('duracion');
+    
+    $maquina = \App\Models\Maquina::find($maquinaId);
+    if (!$maquina) {
+        $this->error('Máquina no encontrada');
+        return 1;
+    }
+    
+    $this->info("Simulando producción en {$maquina->nombre} por {$duracion} minutos...");
+    
+    $inicio = now();
+    $contador = 0;
+    
+    while (now()->diffInMinutes($inicio) < $duracion) {
+        // Simular datos de producción
+        $datos = [
+            'maquina_id' => $maquinaId,
+            'kg_incremento' => rand(50, 200) / 100, // 0.5 - 2.0 kg
+            'oee' => rand(70, 95), // 70% - 95%
+            'velocidad' => rand(800, 1200) / 10, // 80 - 120 kg/h
+        ];
+        
+        // Registrar producción
+        app(\App\Services\Contracts\ProduccionServiceInterface::class)
+            ->registrarProduccion(
+                $datos['maquina_id'],
+                $datos['kg_incremento'],
+                $datos['oee'],
+                $datos['velocidad']
+            );
+        
+        $contador++;
+        $this->info("Registro #{$contador} - {$datos['kg_incremento']} kg");
+        
+        // Esperar 5 segundos antes del siguiente registro
+        sleep(5);
+    }
+    
+    $this->info("✅ Simulación completada - {$contador} registros generados");
+})->purpose('Simular producción para testing');
+
+// ===== COMANDOS DE BACKUP =====
+Artisan::command('fabrica:backup', function () {
+    $this->info('Iniciando backup del sistema...');
+    
+    $fecha = now()->format('Y_m_d_His');
+    $nombreBackup = "backup_{$fecha}.sql";
+    
+    // Comando de mysqldump
+    $comando = sprintf(
+        'mysqldump -u %s -p%s %s > %s',
+        config('database.connections.mysql.username'),
+        config('database.connections.mysql.password'),
+        config('database.connections.mysql.database'),
+        storage_path("backups/{$nombreBackup}")
+    );
+    
+    // Crear directorio si no existe
+    if (!is_dir(storage_path('backups'))) {
+        mkdir(storage_path('backups'), 0755, true);
+    }
+    
+    // Ejecutar backup
+    exec($comando, $output, $returnCode);
+    
+    if ($returnCode === 0) {
+        $this->info("✅ Backup creado: {$nombreBackup}");
+        
+        // Comprimir archivo
+        exec("gzip " . storage_path("backups/{$nombreBackup}"));
+        $this->info("✅ Backup comprimido");
+    } else {
+        $this->error('❌ Error al crear backup');
+        return 1;
+    }
+})->purpose('Crear backup de la base de datos');
+
+// ===== PROGRAMACIÓN DE TAREAS =====
+Schedule::command('fabrica:verificar-mantenimientos')->dailyAt('08:00');
+Schedule::command('fabrica:generar-reporte-diario')->dailyAt('23:30');
+Schedule::command('fabrica:limpiar-datos-antiguos')->weekly()->sundays()->at('02:00');
+Schedule::command('fabrica:backup')->daily()->at('01:00');
+
+// Limpiar cache cada hora
+Schedule::command('cache:clear')->hourly();
+
+// Procesar colas pendientes cada minuto
+Schedule::command('queue:work --stop-when-empty')->everyMinute();
+```
+
+---
+
+## 🗺️ Mapa de Rutas del Sistema
+
+### **Estructura Jerárquica**
+```
+/ (Raíz)
+├── /welcome (Página de bienvenida)
+├── /dashboard (Panel principal) 🔒
+├── /maquinas/ (Gestión de máquinas) 🔒
+│   ├── / (Lista)
+│   ├── /create (Crear)
+│   ├── /{id} (Ver)
+│   ├── /{id}/edit (Editar)
+│   └── DELETE /{id} (Eliminar)
+├── /planta/ (Módulo de planta) 🔒
+│   └── /monitor-maquina/ (Monitor)
+│       ├── / (Lista de monitores)
+│       └── /{id} (Monitor específico)
+├── /produccion/ (Gestión de producción) 🔒
+├── /inventario/ (Gestión de inventario) 🔒
+│   ├── /materias-primas/
+│   ├── /productos/
+│   └── /proveedores/
+├── /mantenimiento/ (Gestión de mantenimiento) 🔒
+├── /recetas/ (Recetas y fórmulas) 🔒
+├── /reportes/ (Reportes y analytics) 🔒
+└── /admin/ (Administración) 🔒👑
+
+API (/api/)
+├── /user (Usuario autenticado) 🔒
+├── /simulacion/ (Simulación de producción)
+├── /maquinas/{id}/estado (Estados de máquinas)
+├── /produccion/ (API de producción) 🔒
+├── /inventario/ (API de inventario) 🔒
+├── /mantenimiento/ (API de mantenimiento) 🔒
+├── /notificaciones/ (API de notificaciones) 🔒
+├── /webhooks/ (Webhooks externos)
+└── /health (Health check)
+```
+
+### **Leyenda**
+- 🔒 Requiere autenticación
+- 👑 Requiere rol de administrador
+- Sin icono: Acceso público
+
+---
+
+*Sistema de rutas bien estructurado que proporciona acceso organizado a todas las funcionalidades del sistema de fábrica biodegradable, desde interfaces web hasta servicios API y comunicación en tiempo real.*
