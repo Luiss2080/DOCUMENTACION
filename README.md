@@ -1,162 +1,185 @@
-# 5.2.9 Sesiones del Sistema (Session Management)
+# 5.2.1 Aplicación Principal (App)
 
-Incluye la gestión de sesiones de usuario, autenticación, autorización y manejo del estado de la aplicación, utilizando el sistema de sesiones nativo de Laravel con soporte para autenticación de SPA.
+Contiene la lógica central de la aplicación, incluyendo controladores, modelos, servicios, eventos, middleware y proveedores de servicios del sistema de fábrica biodegradable.
 
-## 📁 Estructura de Sesiones
+## 📁 Estructura de la Aplicación
 
 ```
-├── 📁 Core/Session/
-│   ├── 📄 config/session.php - Configuración principal de sesiones
-│   ├── 📄 config/auth.php - Configuración de autenticación
-│   └── 📄 config/sanctum.php - Configuración de tokens API
+├── 📁 Events/
+│   ├── 📁 Maquina/
+│   │   ├── 📄 MaquinaCreada.php - Evento cuando se crea una máquina
+│   │   ├── 📄 MaquinaActualizada.php - Evento cuando se actualiza una máquina
+│   │   └── 📄 MaquinaEliminada.php - Evento cuando se elimina una máquina
+│   └── 📁 Produccion/
+│       ├── 📄 ProduccionIniciada.php - Evento al iniciar producción
+│       ├── 📄 ProduccionFinalizada.php - Evento al finalizar producción
+│       └── 📄 ProduccionActualizada.php - Evento al actualizar producción
 │
-├── 📁 Middleware/
-│   ├── 📄 HandleInertiaRequests.php - Middleware para Inertia.js
-│   ├── 📄 AuthenticateSession.php - Autenticación de sesiones (Sanctum)
-│   ├── 📄 EncryptCookies.php - Encriptación de cookies (Sanctum)
-│   └── 📄 ValidateCsrfToken.php - Validación CSRF (Sanctum)
+├── 📁 Http/
+│   ├── 📁 Controllers/
+│   │   ├── 📄 Controller.php - Controlador base abstracto
+│   │   ├── 📄 DashboardController.php - Dashboard principal del sistema
+│   │   ├── 📄 WelcomeController.php - Página de bienvenida
+│   │   ├── 📄 MaquinaController.php - CRUD de máquinas
+│   │   ├── 📁 Api/
+│   │   │   ├── 📄 SimulacionController.php - Simulación de producción
+│   │   │   └── 📄 MaquinaEstadoController.php - Estados de máquinas API
+│   │   └── 📁 Planta/
+│   │       └── 📄 MonitorMaquinaController.php - Monitoreo en tiempo real
+│   └── 📁 Middleware/
+│       └── 📄 HandleInertiaRequests.php - Middleware para Inertia.js SPA
 │
 ├── 📁 Models/
-│   └── 📄 User.php - Modelo de usuario con autenticación
+│   ├── 📄 User.php - Usuario del sistema con roles y permisos
+│   ├── 📄 Maquina.php - Máquinas de la fábrica
+│   ├── 📄 TipoMaquina.php - Tipos de máquinas disponibles
+│   ├── 📄 MaquinaEstadoVivo.php - Estado en tiempo real de máquinas
+│   ├── 📄 Produccion.php - Registro de producciones
+│   ├── 📄 ProduccionConsumo.php - Consumo de materias primas
+│   ├── 📄 Producto.php - Productos fabricados
+│   ├── 📄 LoteProducto.php - Lotes de productos terminados
+│   ├── 📄 MateriaPrima.php - Materias primas del sistema
+│   ├── 📄 LoteMateriaPrima.php - Lotes de materias primas
+│   ├── 📄 Proveedor.php - Proveedores de materias primas
+│   ├── 📄 Receta.php - Recetas de productos
+│   ├── 📄 RecetaDetalle.php - Detalles de recetas (ingredientes)
+│   ├── 📄 Mantenimiento.php - Mantenimientos de máquinas
+│   └── 📄 Parada.php - Paradas de máquinas (programadas/imprevistas)
 │
-├── 📁 Database/
-│   ├── 📄 sessions table - Tabla de sesiones en BD
-│   ├── 📄 users table - Tabla de usuarios
-│   └── 📄 password_reset_tokens table - Tokens de recuperación
+├── 📁 Providers/
+│   └── 📄 AppServiceProvider.php - Proveedor principal de servicios
 │
-└── 📁 Views/
-    ├── 📄 app.blade.php - Layout principal con token CSRF
-    └── 📄 welcome.blade.php - Página de bienvenida con auth
+└── 📁 Services/
+    ├── 📄 ProduccionService.php - Servicio de gestión de producción
+    └── 📁 Contracts/
+        └── 📄 ProduccionServiceInterface.php - Interfaz del servicio
 ```
 
 ---
 
-## 🔧 Configuración de Sesiones
+## 🎯 Funcionalidades Principales
 
-### 📄 `config/session.php`
+### 📊 **Dashboard y Monitoreo**
+- **Dashboard principal**: Estadísticas y métricas en tiempo real
+- **Monitor de máquinas**: Vista detallada del estado de cada máquina
+- **Alertas y notificaciones**: Sistema de eventos para cambios críticos
+
+### 🏭 **Gestión de Producción**
+- **Registro de producción**: Captura automática de datos de producción
+- **Control de calidad**: OEE, velocidad y eficiencia
+- **Simulación**: Sistema para pruebas y validación
+
+### ⚙️ **Gestión de Máquinas**
+- **CRUD completo**: Crear, leer, actualizar y eliminar máquinas
+- **Estados en tiempo real**: Monitoreo continuo del estado
+- **Mantenimiento**: Programación y registro de mantenimientos
+- **Paradas**: Control de paradas programadas e imprevistas
+
+### 📦 **Gestión de Inventario**
+- **Materias primas**: Control de stock y lotes
+- **Productos**: Gestión de productos terminados
+- **Recetas**: Fórmulas y composición de productos
+- **Proveedores**: Gestión de proveedores de materiales
+
+---
+
+## 🔄 Arquitectura de Eventos
+
+### **Eventos de Máquina**
 ```php
-return [
-    // Driver de sesiones: database (almacenado en BD)
-    'driver' => env('SESSION_DRIVER', 'database'),
-    
-    // Tiempo de vida: 120 minutos
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
-    
-    // Expirar al cerrar navegador
-    'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
-    
-    // Encriptación de sesiones
-    'encrypt' => env('SESSION_ENCRYPT', false),
-    
-    // Tabla de sesiones
-    'table' => env('SESSION_TABLE', 'sessions'),
-    
-    // Cookie de sesión
-    'cookie' => env('SESSION_COOKIE', 'laravel-session'),
-    
-    // Configuración de seguridad
-    'secure' => env('SESSION_SECURE_COOKIE'),
-    'http_only' => env('SESSION_HTTP_ONLY', true),
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
-];
+// Disparados automáticamente en operaciones CRUD
+MaquinaCreada::class       // Nueva máquina registrada
+MaquinaActualizada::class  // Máquina modificada
+MaquinaEliminada::class    // Máquina eliminada
 ```
 
-### 📄 `config/auth.php`
+### **Eventos de Producción**
 ```php
-return [
-    'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
-    ],
-    
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
-    ],
-    
-    'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\User::class,
-        ],
-    ],
-];
-```
-
-### 📄 `config/sanctum.php`
-```php
-return [
-    // Dominios con estado para SPA
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1'
-    )),
-    
-    // Guards de autenticación
-    'guard' => ['web'],
-    
-    // Middleware de Sanctum
-    'middleware' => [
-        'authenticate_session' => AuthenticateSession::class,
-        'encrypt_cookies' => EncryptCookies::class,
-        'validate_csrf_token' => ValidateCsrfToken::class,
-    ],
-];
+// Disparados durante el ciclo de producción
+ProduccionIniciada::class     // Inicio de nuevo ciclo
+ProduccionActualizada::class  // Actualización de métricas
+ProduccionFinalizada::class   // Fin de ciclo productivo
 ```
 
 ---
 
-## 🔐 Autenticación y Autorización
+## 🛠️ Servicios y Contratos
 
-### 📄 `app/Models/User.php`
+### **ProduccionService**
 ```php
-<?php
-
-namespace App\Models;
-
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
-
-class User extends Authenticatable
+interface ProduccionServiceInterface
 {
-    use HasApiTokens, HasRoles;
+    public function registrarProduccion(
+        int $maquinaId, 
+        float $kgIncremento, 
+        float $oee, 
+        float $velocidad, 
+        ?Carbon $fechaProduccion = null, 
+        bool $isLastRegister = false
+    ): array;
     
-    protected $fillable = [
-        'name', 'email', 'password', 'activo', 'foto_perfil',
-    ];
-    
-    protected $hidden = ['password', 'remember_token'];
-    
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'activo' => 'boolean',
-    ];
-    
-    // Relaciones específicas del sistema
-    public function produccionesOperador()
-    {
-        return $this->hasMany(Produccion::class, 'operador_id');
-    }
-    
-    public function produccionesEncargado()
-    {
-        return $this->hasMany(Produccion::class, 'encargado_id');
-    }
+    public function getEstadisticasDia(): array;
+    public function getProduccionPorMaquina(): array;
 }
 ```
 
-### 🛡️ Middleware de Sesión
+### **Funcionalidades del Servicio**
+- ✅ **Registro automático** de producción
+- ✅ **Cálculo de estadísticas** en tiempo real
+- ✅ **Gestión de estados** de máquinas
+- ✅ **Validación de datos** de producción
+- ✅ **Transacciones** para integridad de datos
 
-#### 📄 `app/Http/Middleware/HandleInertiaRequests.php`
+---
+
+## 📊 Modelos y Relaciones
+
+### **Relaciones Principales**
 ```php
-<?php
+// Máquina -> Estado en tiempo real (1:1)
+Maquina::class -> MaquinaEstadoVivo::class
 
-namespace App\Http\Middleware;
+// Máquina -> Producciones (1:N)
+Maquina::class -> Produccion::class
 
-use Inertia\Middleware;
+// Producción -> Consumos (1:N)
+Produccion::class -> ProduccionConsumo::class
 
+// Receta -> Detalles (1:N)
+Receta::class -> RecetaDetalle::class
+
+// Usuario -> Producciones (1:N)
+User::class -> Produccion::class (operador/encargado)
+```
+
+### **Características de los Modelos**
+- ✅ **Mutadores y Accessors** para formateo de datos
+- ✅ **Casting automático** de tipos de datos
+- ✅ **Soft Deletes** para eliminación lógica
+- ✅ **Scopes** para consultas complejas
+- ✅ **Observers** para eventos automáticos
+
+---
+
+## 🌐 Controladores API vs Web
+
+### **Web Controllers**
+- **DashboardController**: Dashboard principal con Inertia.js
+- **MaquinaController**: CRUD completo con vistas
+- **MonitorMaquinaController**: Monitoreo con SSE
+- **WelcomeController**: Página de inicio
+
+### **API Controllers**
+- **SimulacionController**: Endpoints para simulación
+- **MaquinaEstadoController**: API REST para estados
+- **Endpoints sin autenticación**: Para simuladores externos
+
+---
+
+## 🔒 Middleware y Seguridad
+
+### **HandleInertiaRequests**
+```php
 class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
@@ -164,11 +187,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return [
-            ...parent::share($request),
-            // Compartir datos de sesión con frontend
-            'auth' => [
-                'user' => $request->user(),
-            ],
+            'auth' => ['user' => $request->user()],
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),
@@ -178,307 +197,13 @@ class HandleInertiaRequests extends Middleware
 }
 ```
 
----
-
-## 💾 Base de Datos de Sesiones
-
-### 📄 Tabla `sessions`
-```sql
-CREATE TABLE sessions (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id BIGINT UNSIGNED NULL,
-    ip_address VARCHAR(45) NULL,
-    user_agent TEXT NULL,
-    payload LONGTEXT NOT NULL,
-    last_activity INT NOT NULL,
-    
-    INDEX sessions_user_id_index (user_id),
-    INDEX sessions_last_activity_index (last_activity)
-);
-```
-
-### 📄 Tabla `users`
-```sql
-CREATE TABLE users (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    email_verified_at TIMESTAMP NULL,
-    password VARCHAR(255) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    foto_perfil VARCHAR(255) NULL,
-    remember_token VARCHAR(100) NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL
-);
-```
-
-### 📄 Tabla `password_reset_tokens`
-```sql
-CREATE TABLE password_reset_tokens (
-    email VARCHAR(255) PRIMARY KEY,
-    token VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP NULL
-);
-```
+### **Características de Seguridad**
+- ✅ **Autenticación** integrada con Laravel Sanctum
+- ✅ **Autorización** con Spatie Permission
+- ✅ **Validación** de datos en todas las operaciones
+- ✅ **CSRF Protection** en formularios web
+- ✅ **Rate Limiting** en endpoints API
 
 ---
 
-## 🌐 Rutas con Autenticación
-
-### 📄 `routes/web.php`
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// Rutas públicas
-Route::get('/', function () {
-    return redirect('/welcome');
-});
-
-Route::get('/welcome', [WelcomeController::class, 'index'])
-    ->name('welcome');
-
-// Rutas protegidas por autenticación
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
-    
-    Route::resource('maquinas', MaquinaController::class);
-    
-    Route::prefix('planta')->name('planta.')->group(function () {
-        Route::get('/monitor-maquina', [MonitorMaquinaController::class, 'index'])
-            ->name('monitor-maquina.index');
-        Route::get('/monitor-maquina/{maquina}', [MonitorMaquinaController::class, 'show'])
-            ->name('monitor-maquina.show');
-    });
-});
-```
-
-### 📄 `routes/api.php`
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// Ruta protegida por Sanctum
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
-
-// Rutas de API para simulación (sin autenticación)
-Route::post('/simular-produccion', [SimulacionController::class, 'simularProduccion']);
-Route::get('/maquina/{maquina}/estado', [MonitorMaquinaController::class, 'getEstado']);
-Route::put('/maquina/{maquina}/estado', [MaquinaEstadoController::class, 'updateEstado']);
-```
-
----
-
-## 🎨 Vistas con Autenticación
-
-### 📄 `resources/views/app.blade.php`
-```php
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    
-    <title>{{ config('app.name', 'Fábrica Biodegradable') }}</title>
-    
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @inertiaHead
-</head>
-<body class="antialiased">
-    @inertia
-</body>
-</html>
-```
-
-### 📄 `resources/views/welcome.blade.php`
-```php
-@if (Route::has('login'))
-    <nav class="flex items-center justify-end gap-4">
-        @auth
-            <a href="{{ url('/dashboard') }}" class="...">
-                Dashboard
-            </a>
-        @else
-            <a href="{{ route('login') }}" class="...">
-                Log in
-            </a>
-            
-            @if (Route::has('register'))
-                <a href="{{ route('register') }}" class="...">
-                    Register
-                </a>
-            @endif
-        @endauth
-    </nav>
-@endif
-```
-
----
-
-## ⚙️ Variables de Entorno
-
-### 📄 `.env`
-```env
-# Configuración de sesiones
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_ENCRYPT=false
-SESSION_PATH=/
-SESSION_DOMAIN=null
-SESSION_SECURE_COOKIE=false
-SESSION_HTTP_ONLY=true
-SESSION_SAME_SITE=lax
-SESSION_PARTITIONED_COOKIE=false
-
-# Configuración de autenticación
-AUTH_GUARD=web
-AUTH_PASSWORD_BROKER=users
-AUTH_MODEL=App\Models\User
-AUTH_PASSWORD_TIMEOUT=10800
-
-# Configuración de Sanctum
-SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1
-
-# Configuración de la aplicación
-APP_NAME="Fábrica Biodegradable"
-APP_ENV=local
-APP_KEY=base64:...
-APP_URL=http://127.0.0.1:8000
-APP_LOCALE=es
-```
-
----
-
-## 🚀 Configuración del Bootstrap
-
-### 📄 `bootstrap/app.php`
-```php
-<?php
-
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Middleware;
-
-return Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
-        health: '/up',
-    )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-        ]);
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
-```
-
----
-
-## 🔄 Flujo de Sesión
-
-### 1. **Inicio de Sesión**
-```mermaid
-graph TD
-    A[Usuario accede] --> B{¿Tiene sesión?}
-    B -->|Sí| C[Validar sesión]
-    B -->|No| D[Mostrar welcome]
-    C --> E{¿Válida?}
-    E -->|Sí| F[Acceder a dashboard]
-    E -->|No| D
-    D --> G[Login/Register]
-    G --> H[Crear sesión]
-    H --> F
-```
-
-### 2. **Gestión de Estado**
-- **Sesiones**: Almacenadas en base de datos
-- **Tokens CSRF**: Para protección contra ataques
-- **Cookies**: Encriptadas y seguras
-- **API Tokens**: Sanctum para autenticación de API
-
-### 3. **Middleware Stack**
-1. **EncryptCookies** - Encripta cookies
-2. **ValidateCsrfToken** - Valida tokens CSRF
-3. **HandleInertiaRequests** - Maneja requests de Inertia
-4. **AuthenticateSession** - Autentica sesiones API
-
----
-
-## 🛠️ Herramientas y Características
-
-### **Laravel Sanctum**
-- Autenticación para SPA
-- Tokens API sin estado
-- Protección CSRF
-- Dominios con estado configurables
-
-### **Spatie Permission**
-- Gestión de roles y permisos
-- Integración con User model
-- Cache de permisos
-- Middleware de autorización
-
-### **Inertia.js**
-- SPA sin API
-- Compartir datos de sesión
-- Redirecciones automáticas
-- Manejo de formularios
-
-### **Session Storage**
-- Driver: Database
-- Encriptación opcional
-- Limpieza automática
-- Configuración flexible
-
----
-
-## 📊 Monitoreo y Logs
-
-### **Session Tracking**
-```php
-// En controllers
-Log::info('Usuario autenticado', [
-    'user_id' => auth()->id(),
-    'session_id' => session()->getId(),
-    'ip' => request()->ip()
-]);
-```
-
-### **Limpieza de Sesiones**
-```bash
-# Comando para limpiar sesiones expiradas
-php artisan session:gc
-```
-
----
-
-## 🔒 Seguridad
-
-### **Configuraciones de Seguridad**
-- **HTTPS Only**: Para producción
-- **HTTP Only**: Prevenir acceso JS malicioso
-- **SameSite**: Protección CSRF
-- **Secure Cookie**: Solo HTTPS
-- **Session Timeout**: 120 minutos por defecto
-
-### **Protecciones Implementadas**
-- ✅ **CSRF Protection** - Tokens en formularios
-- ✅ **Session Fixation** - Regeneración de ID
-- ✅ **Cookie Security** - Flags de seguridad
-- ✅ **XSS Prevention** - Escape automático
-- ✅ **SQL Injection** - Eloquent ORM
-
----
-
-*Sistema de sesiones robusto y seguro para la gestión de usuarios en la aplicación de fábrica biodegradable, utilizando las mejores prácticas de Laravel y herramientas modernas de autenticación.*
+*Núcleo de la aplicación que gestiona toda la lógica de negocio del sistema de monitoreo y control de fábrica biodegradable.*
