@@ -1,657 +1,366 @@
-# 5.2.3 Configuración del Sistema (Config)
+# 5.2.2 Base de Datos (Database)
 
-Contiene todos los archivos de configuración del sistema, incluyendo base de datos, autenticación, servicios, caché, sesiones y otras configuraciones específicas del framework Laravel.
+Incluye los archivos de migración, respaldos, semillas y estructura inicial de la base de datos, permitiendo la configuración y gestión de los datos del sistema de fábrica biodegradable.
 
-## 📁 Estructura de Configuración
+## 📁 Estructura de la Base de Datos
 
 ```
-├── 📄 app.php - Configuración principal de la aplicación
-├── 📄 auth.php - Configuración de autenticación y guards
-├── 📄 broadcasting.php - Configuración de broadcasting en tiempo real
-├── 📄 cache.php - Configuración de caché y drivers
-├── 📄 database.php - Configuración de conexiones de base de datos
-├── 📄 filesystems.php - Configuración de sistemas de archivos
-├── 📄 logging.php - Configuración de logs y canales
-├── 📄 mail.php - Configuración de correo electrónico
-├── 📄 permission.php - Configuración de roles y permisos (Spatie)
-├── 📄 queue.php - Configuración de colas de trabajos
-├── 📄 reverb.php - Configuración del servidor WebSocket (Laravel Reverb)
-├── 📄 sanctum.php - Configuración de autenticación API (Laravel Sanctum)
-├── 📄 services.php - Configuración de servicios de terceros
-└── 📄 session.php - Configuración de sesiones de usuario
-```
-
----
-
-## ⚙️ Configuraciones Principales
-
-### 📄 `config/app.php`
-```php
-<?php
-
-return [
-    'name' => env('APP_NAME', 'Fábrica Biodegradable'),
-    'env' => env('APP_ENV', 'production'),
-    'debug' => (bool) env('APP_DEBUG', false),
-    'url' => env('APP_URL', 'http://localhost'),
-    
-    // Configuración de localización
-    'locale' => env('APP_LOCALE', 'es'),
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'es'),
-    'faker_locale' => env('APP_FAKER_LOCALE', 'es_BO'),
-    
-    // Configuración de seguridad
-    'cipher' => 'AES-256-CBC',
-    'key' => env('APP_KEY'),
-    
-    // Configuración de mantenimiento
-    'maintenance' => [
-        'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
-    ],
-    
-    // Proveedores de servicios
-    'providers' => [
-        // Proveedores de Laravel
-        Illuminate\Auth\AuthServiceProvider::class,
-        Illuminate\Broadcasting\BroadcastServiceProvider::class,
-        Illuminate\Bus\BusServiceProvider::class,
-        Illuminate\Cache\CacheServiceProvider::class,
-        // Proveedores de terceros
-        Inertia\ServiceProvider::class,
-        Laravel\Sanctum\SanctumServiceProvider::class,
-        Spatie\Permission\PermissionServiceProvider::class,
-        // Proveedores de la aplicación
-        App\Providers\AppServiceProvider::class,
-    ],
-];
-```
-
-### 📄 `config/database.php`
-```php
-<?php
-
-return [
-    'default' => env('DB_CONNECTION', 'mysql'),
-    
-    'connections' => [
-        'mysql' => [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'fabrica_biodegradable'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8mb4'),
-            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
-            'prefix' => '',
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
-        ],
-    ],
-    
-    'migrations' => 'migrations',
-    'redis' => [
-        'client' => env('REDIS_CLIENT', 'phpredis'),
-        'default' => [
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'password' => env('REDIS_PASSWORD'),
-            'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_DB', '0'),
-        ],
-    ],
-];
+├── 📁 BackUp/
+│   ├── 📄 2025_08_18_tech_home.sql - Respaldo del 18 de agosto 2025
+│   └── 📄 2025_08_19_tech_home.sql - Respaldo del 19 de agosto 2025
+│
+├── 📁 factories/
+│   └── 📄 UserFactory.php - Factory para generar usuarios de prueba
+│
+├── 📁 migrations/
+│   ├── 📄 0001_01_01_000000_create_users_table.php - Tabla de usuarios del sistema
+│   ├── 📄 0001_01_01_000001_create_cache_table.php - Tabla de caché del sistema
+│   ├── 📄 0001_01_01_000002_create_jobs_table.php - Tabla de trabajos en cola
+│   ├── 📄 2025_11_19_031653_create_tipos_maquinas_table.php - Tipos de máquinas
+│   ├── 📄 2025_11_19_031655_create_maquinas_table.php - Máquinas de la fábrica
+│   ├── 📄 2025_11_19_031656_create_proveedores_table.php - Proveedores de materias primas
+│   ├── 📄 2025_11_19_031657_create_materias_primas_table.php - Materias primas del sistema
+│   ├── 📄 2025_11_19_031659_create_lotes_materia_prima_table.php - Lotes de materias primas
+│   ├── 📄 2025_11_19_031700_create_productos_table.php - Productos fabricados
+│   ├── 📄 2025_11_19_031701_create_recetas_table.php - Recetas de productos
+│   ├── 📄 2025_11_19_031703_create_receta_detalles_table.php - Detalles de recetas
+│   ├── 📄 2025_11_19_031704_create_producciones_table.php - Registro de producciones
+│   ├── 📄 2025_11_19_031705_create_produccion_consumos_table.php - Consumos por producción
+│   ├── 📄 2025_11_19_031706_create_lotes_productos_table.php - Lotes de productos terminados
+│   ├── 📄 2025_11_19_031707_create_mantenimientos_table.php - Mantenimientos de máquinas
+│   ├── 📄 2025_11_19_031708_create_paradas_table.php - Paradas de máquinas
+│   ├── 📄 2025_11_19_031800_create_maquinas_estado_vivo_table.php - Estado en tiempo real
+│   ├── 📄 2025_11_19_040341_create_permission_tables.php - Sistema de permisos
+│   └── 📄 2025_11_19_041311_add_activo_to_users_table.php - Campo activo en usuarios
+│
+└── 📁 seeders/
+    ├── 📄 DatabaseSeeder.php - Seeder principal del sistema
+    ├── 📄 datos_iniciales.sql - Datos iniciales del sistema
+    └── 📄 permisos_basicos.sql - Permisos y roles básicos
 ```
 
 ---
 
-## 🔐 Configuraciones de Seguridad
+## 🗄️ Estructura de Tablas Principales
 
-### 📄 `config/auth.php`
-```php
-<?php
+### 👥 **Gestión de Usuarios y Permisos**
+```sql
+-- Tabla de usuarios del sistema
+users (
+    id, name, email, email_verified_at, password, 
+    activo, foto_perfil, remember_token, 
+    created_at, updated_at
+)
 
-return [
-    'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
-    ],
-    
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
-        'api' => [
-            'driver' => 'sanctum',
-            'provider' => 'users',
-        ],
-    ],
-    
-    'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
-        ],
-    ],
-    
-    'passwords' => [
-        'users' => [
-            'provider' => 'users',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
-            'throttle' => 60,
-        ],
-    ],
-    
-    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
-];
+-- Sistema de permisos (Spatie Permission)
+permissions, roles, model_has_permissions, 
+model_has_roles, role_has_permissions
 ```
 
-### 📄 `config/sanctum.php`
-```php
-<?php
+### 🏭 **Gestión de Máquinas**
+```sql
+-- Tipos de máquinas disponibles
+tipos_maquinas (
+    id, nombre, descripcion, created_at, updated_at
+)
 
-return [
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Laravel\Sanctum\Sanctum::currentApplicationUrlWithPort()
-    ))),
-    
-    'guard' => ['web'],
-    'expiration' => null,
-    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
-    
-    'middleware' => [
-        'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
-        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-    ],
-];
+-- Máquinas de la fábrica
+maquinas (
+    id, codigo, nombre, descripcion, foto, 
+    tipo_maquina_id, capacidad_maxima, 
+    velocidad_maxima, created_at, updated_at
+)
+
+-- Estado en tiempo real de máquinas
+maquinas_estado_vivo (
+    id, maquina_id, kg_producidos, oee_actual, 
+    velocidad_actual, updated_at, created_at
+)
 ```
 
-### 📄 `config/permission.php`
-```php
-<?php
+### 📦 **Gestión de Inventario**
+```sql
+-- Proveedores de materias primas
+proveedores (
+    id, nombre, contacto, telefono, email, 
+    direccion, created_at, updated_at
+)
 
-return [
-    'models' => [
-        'permission' => Spatie\Permission\Models\Permission::class,
-        'role' => Spatie\Permission\Models\Role::class,
-    ],
-    
-    'table_names' => [
-        'roles' => 'roles',
-        'permissions' => 'permissions',
-        'model_has_permissions' => 'model_has_permissions',
-        'model_has_roles' => 'model_has_roles',
-        'role_has_permissions' => 'role_has_permissions',
-    ],
-    
-    'column_names' => [
-        'role_pivot_key' => null,
-        'permission_pivot_key' => null,
-        'model_morph_key' => 'model_id',
-        'team_foreign_key' => 'team_id',
-    ],
-    
-    'register_permission_check_method' => true,
-    'register_octane_reset_listener' => false,
-    'teams' => false,
-    'use_passport_client_credentials' => false,
-    'display_permission_in_exception' => false,
-    'display_role_in_exception' => false,
-    'enable_wildcard_permission' => false,
-    
-    'cache' => [
-        'expiration_time' => \DateInterval::createFromDateString('24 hours'),
-        'key' => 'spatie.permission.cache',
-        'store' => 'default',
-    ],
-];
+-- Materias primas del sistema
+materias_primas (
+    id, nombre, descripcion, unidad_medida, 
+    precio_unitario, proveedor_id, 
+    created_at, updated_at
+)
+
+-- Lotes de materias primas
+lotes_materia_prima (
+    id, materia_prima_id, cantidad, 
+    fecha_vencimiento, precio_lote, 
+    created_at, updated_at
+)
+
+-- Productos fabricados
+productos (
+    id, nombre, descripcion, unidad_medida, 
+    precio_venta, created_at, updated_at
+)
+
+-- Lotes de productos terminados
+lotes_productos (
+    id, producto_id, cantidad, fecha_produccion, 
+    fecha_vencimiento, produccion_id, 
+    created_at, updated_at
+)
 ```
 
----
+### 🧪 **Recetas y Producción**
+```sql
+-- Recetas de productos
+recetas (
+    id, producto_id, nombre, descripcion, 
+    cantidad_base, created_at, updated_at
+)
 
-## 📡 Configuraciones de Comunicación
+-- Detalles de recetas (ingredientes)
+receta_detalles (
+    id, receta_id, materia_prima_id, 
+    cantidad_requerida, created_at, updated_at
+)
 
-### 📄 `config/broadcasting.php`
-```php
-<?php
+-- Registro de producciones
+producciones (
+    id, maquina_id, operador_id, encargado_id, 
+    fecha_inicio, fecha_fin, kg_producidos, 
+    oee, velocidad, created_at, updated_at
+)
 
-return [
-    'default' => env('BROADCAST_CONNECTION', 'reverb'),
-    
-    'connections' => [
-        'reverb' => [
-            'driver' => 'reverb',
-            'key' => env('REVERB_APP_KEY'),
-            'secret' => env('REVERB_APP_SECRET'),
-            'app_id' => env('REVERB_APP_ID'),
-            'options' => [
-                'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
-            ],
-            'client_options' => [],
-        ],
-        
-        'pusher' => [
-            'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY'),
-            'secret' => env('PUSHER_APP_SECRET'),
-            'app_id' => env('PUSHER_APP_ID'),
-            'options' => [
-                'cluster' => env('PUSHER_APP_CLUSTER'),
-                'host' => env('PUSHER_HOST'),
-                'port' => env('PUSHER_PORT', 443),
-                'scheme' => env('PUSHER_SCHEME', 'https'),
-                'encrypted' => true,
-                'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
-            ],
-        ],
-    ],
-];
+-- Consumos por producción
+produccion_consumos (
+    id, produccion_id, lote_materia_prima_id, 
+    cantidad_consumida, created_at, updated_at
+)
 ```
 
-### 📄 `config/reverb.php`
-```php
-<?php
+### 🔧 **Mantenimiento y Paradas**
+```sql
+-- Mantenimientos de máquinas
+mantenimientos (
+    id, maquina_id, tipo, fecha_programada, 
+    fecha_realizada, descripcion, realizado_por, 
+    costo, horas_parada, created_at, updated_at
+)
 
-return [
-    'default' => env('REVERB_SERVER', 'reverb'),
-    
-    'servers' => [
-        'reverb' => [
-            'host' => env('REVERB_HOST', '127.0.0.1'),
-            'port' => env('REVERB_PORT', 8080),
-            'hostname' => env('REVERB_HOSTNAME'),
-            'options' => [
-                'tls' => [],
-            ],
-            'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10_000),
-            'scaling' => [
-                'enabled' => env('REVERB_SCALING_ENABLED', false),
-                'channel' => env('REVERB_SCALING_CHANNEL', 'reverb'),
-                'server' => [
-                    'url' => env('REDIS_URL'),
-                    'host' => env('REDIS_HOST', '127.0.0.1'),
-                    'port' => env('REDIS_PORT', 6379),
-                    'username' => env('REDIS_USERNAME'),
-                    'password' => env('REDIS_PASSWORD'),
-                ],
-            ],
-            'pulse_ingest_interval' => env('REVERB_PULSE_INGEST_INTERVAL', 15),
-            'telescope_ingest_interval' => env('REVERB_TELESCOPE_INGEST_INTERVAL', 15),
-        ],
-    ],
-    
-    'apps' => [
-        'provider' => 'config',
-        'apps' => [
-            [
-                'key' => env('REVERB_APP_KEY'),
-                'secret' => env('REVERB_APP_SECRET'),
-                'app_id' => env('REVERB_APP_ID'),
-                'options' => [
-                    'host' => env('REVERB_HOST'),
-                    'port' => env('REVERB_PORT', 443),
-                    'scheme' => env('REVERB_SCHEME', 'https'),
-                ],
-                'allowed_origins' => ['*'],
-                'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
-                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
-            ],
-        ],
-    ],
-];
+-- Paradas de máquinas
+paradas (
+    id, maquina_id, fecha_inicio, fecha_fin, 
+    motivo, tipo, descripcion, 
+    created_at, updated_at
+)
 ```
 
 ---
 
-## 🗄️ Configuraciones de Almacenamiento
+## 🏗️ Migraciones Cronológicas
 
-### 📄 `config/cache.php`
+### **Migración Base del Sistema**
 ```php
-<?php
+// 0001_01_01_000000_create_users_table.php
+Schema::create('users', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->string('email')->unique();
+    $table->timestamp('email_verified_at')->nullable();
+    $table->string('password');
+    $table->rememberToken();
+    $table->timestamps();
+});
 
-return [
-    'default' => env('CACHE_STORE', 'database'),
-    
-    'stores' => [
-        'database' => [
-            'driver' => 'database',
-            'table' => env('CACHE_TABLE', 'cache'),
-            'connection' => null,
-            'lock_connection' => null,
-        ],
-        
-        'file' => [
-            'driver' => 'file',
-            'path' => storage_path('framework/cache/data'),
-            'lock_path' => storage_path('framework/cache/data'),
-        ],
-        
-        'redis' => [
-            'driver' => 'redis',
-            'connection' => env('CACHE_REDIS_CONNECTION', 'cache'),
-            'lock_connection' => env('CACHE_REDIS_LOCK_CONNECTION', 'default'),
-        ],
-    ],
-    
-    'prefix' => env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache_'),
-];
+Schema::create('sessions', function (Blueprint $table) {
+    $table->string('id')->primary();
+    $table->foreignId('user_id')->nullable()->index();
+    $table->string('ip_address', 45)->nullable();
+    $table->text('user_agent')->nullable();
+    $table->longText('payload');
+    $table->integer('last_activity')->index();
+});
 ```
 
-### 📄 `config/filesystems.php`
+### **Migración de Máquinas**
 ```php
-<?php
+// 2025_11_19_031655_create_maquinas_table.php
+Schema::create('maquinas', function (Blueprint $table) {
+    $table->id();
+    $table->string('codigo')->unique();
+    $table->string('nombre');
+    $table->text('descripcion')->nullable();
+    $table->string('foto')->nullable();
+    $table->foreignId('tipo_maquina_id')->constrained('tipos_maquinas');
+    $table->decimal('capacidad_maxima', 10, 2);
+    $table->decimal('velocidad_maxima', 10, 2);
+    $table->timestamps();
+});
+```
 
-return [
-    'default' => env('FILESYSTEM_DISK', 'local'),
-    
-    'disks' => [
-        'local' => [
-            'driver' => 'local',
-            'root' => storage_path('app'),
-            'throw' => false,
-        ],
-        
-        'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
-            'visibility' => 'public',
-            'throw' => false,
-        ],
-        
-        's3' => [
-            'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-        ],
-    ],
-    
-    'links' => [
-        public_path('storage') => storage_path('app/public'),
-    ],
-];
+### **Migración de Estado en Tiempo Real**
+```php
+// 2025_11_19_031800_create_maquinas_estado_vivo_table.php
+Schema::create('maquinas_estado_vivo', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('maquina_id')->unique()->constrained('maquinas');
+    $table->decimal('kg_producidos', 10, 2)->default(0);
+    $table->decimal('oee_actual', 5, 2)->default(0);
+    $table->decimal('velocidad_actual', 10, 2)->default(0);
+    $table->timestamps();
+});
 ```
 
 ---
 
-## 📊 Configuraciones de Monitoreo
+## 🌱 Seeders y Datos Iniciales
 
-### 📄 `config/logging.php`
+### **DatabaseSeeder Principal**
 ```php
 <?php
 
-return [
-    'default' => env('LOG_CHANNEL', 'stack'),
-    
-    'channels' => [
-        'stack' => [
-            'driver' => 'stack',
-            'channels' => explode(',', env('LOG_STACK', 'single')),
-            'ignore_exceptions' => false,
-        ],
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Crear usuario administrador
+        \App\Models\User::factory()->create([
+            'name' => 'Administrador',
+            'email' => 'admin@fabricabiodegradable.com',
+            'activo' => true,
+        ]);
         
-        'single' => [
-            'driver' => 'single',
-            'path' => storage_path('logs/laravel.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'replace_placeholders' => true,
-        ],
-        
-        'daily' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/laravel.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
-            'replace_placeholders' => true,
-        ],
-        
-        'stderr' => [
-            'driver' => 'monolog',
-            'level' => env('LOG_LEVEL', 'debug'),
-            'handler' => Monolog\Handler\StreamHandler::class,
-            'formatter' => env('LOG_STDERR_FORMATTER'),
-            'with' => [
-                'stream' => 'php://stderr',
-            ],
-        ],
-        
-        'produccion' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/produccion.log'),
-            'level' => 'info',
-            'days' => 30,
-        ],
-        
-        'maquinas' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/maquinas.log'),
-            'level' => 'info',
-            'days' => 30,
-        ],
-    ],
-];
+        // Ejecutar seeders específicos
+        $this->call([
+            TipoMaquinaSeeder::class,
+            MaquinaSeeder::class,
+            ProveedorSeeder::class,
+            MateriaPrimaSeeder::class,
+            ProductoSeeder::class,
+            RecetaSeeder::class,
+            PermissionSeeder::class,
+        ]);
+    }
+}
 ```
 
-### 📄 `config/queue.php`
-```php
-<?php
+### **Datos Iniciales del Sistema**
+```sql
+-- datos_iniciales.sql
+INSERT INTO tipos_maquinas (nombre, descripcion) VALUES
+('Extrusora', 'Máquina para extrusión de material biodegradable'),
+('Mezcladora', 'Máquina para mezcla de materias primas'),
+('Prensa', 'Máquina para prensado y moldeado'),
+('Cortadora', 'Máquina para corte de material');
 
-return [
-    'default' => env('QUEUE_CONNECTION', 'database'),
-    
-    'connections' => [
-        'database' => [
-            'driver' => 'database',
-            'connection' => env('DB_QUEUE_CONNECTION'),
-            'table' => env('DB_QUEUE_TABLE', 'jobs'),
-            'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => env('DB_QUEUE_RETRY_AFTER', 90),
-            'after_commit' => false,
-        ],
-        
-        'redis' => [
-            'driver' => 'redis',
-            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
-            'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => env('REDIS_QUEUE_RETRY_AFTER', 90),
-            'block_for' => null,
-            'after_commit' => false,
-        ],
-    ],
-    
-    'batching' => [
-        'database' => env('DB_CONNECTION', 'mysql'),
-        'table' => 'job_batches',
-    ],
-    
-    'failed' => [
-        'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
-        'database' => env('DB_CONNECTION', 'mysql'),
-        'table' => 'failed_jobs',
-    ],
-];
+INSERT INTO proveedores (nombre, contacto, telefono, email) VALUES
+('EcoMateriales SA', 'Juan Pérez', '+591 123456789', 'contacto@ecomateriales.com'),
+('BioPack Ltda', 'María García', '+591 987654321', 'ventas@biopack.com');
+```
+
+### **Permisos y Roles Básicos**
+```sql
+-- permisos_basicos.sql
+INSERT INTO permissions (name, guard_name) VALUES
+('ver_dashboard', 'web'),
+('gestionar_maquinas', 'web'),
+('gestionar_produccion', 'web'),
+('gestionar_inventario', 'web'),
+('gestionar_mantenimiento', 'web'),
+('administrar_sistema', 'web');
+
+INSERT INTO roles (name, guard_name) VALUES
+('Administrador', 'web'),
+('Operador', 'web'),
+('Encargado', 'web'),
+('Mantenimiento', 'web');
 ```
 
 ---
 
-## 📧 Configuraciones de Comunicación Externa
+## 🔄 Respaldos Automáticos
 
-### 📄 `config/mail.php`
+### **Configuración de Respaldos**
+```bash
+# Comando para generar respaldos
+mysqldump -u usuario -p fabrica_biodegradable > backup/$(date +%Y_%m_%d)_tech_home.sql
+
+# Restaurar desde respaldo
+mysql -u usuario -p fabrica_biodegradable < backup/2025_08_19_tech_home.sql
+```
+
+### **Estructura de Respaldos**
+- ✅ **Respaldos diarios** automáticos
+- ✅ **Nomenclatura estándar** con fecha
+- ✅ **Compresión** para optimizar espacio
+- ✅ **Retención** de 30 días por defecto
+
+---
+
+## 🏭 Factory para Testing
+
+### **UserFactory**
 ```php
 <?php
 
-return [
-    'default' => env('MAIL_MAILER', 'log'),
-    
-    'mailers' => [
-        'smtp' => [
-            'transport' => 'smtp',
-            'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 2525),
-            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
-            'username' => env('MAIL_USERNAME'),
-            'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
-        ],
-        
-        'log' => [
-            'transport' => 'log',
-            'channel' => env('MAIL_LOG_CHANNEL'),
-        ],
-    ],
-    
-    'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME')),
-    ],
-];
-```
+namespace Database\Factories;
 
-### 📄 `config/services.php`
-```php
-<?php
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
-return [
-    'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
-    ],
-    
-    'resend' => [
-        'key' => env('RESEND_API_KEY'),
-    ],
-    
-    'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
-        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-    ],
-    
-    'slack' => [
-        'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
-        ],
-    ],
-    
-    // Servicios específicos del proyecto
-    'simulacion' => [
-        'enabled' => env('SIMULACION_ENABLED', true),
-        'interval' => env('SIMULACION_INTERVAL', 5000), // milisegundos
-        'max_maquinas' => env('SIMULACION_MAX_MAQUINAS', 10),
-    ],
-    
-    'monitoring' => [
-        'enabled' => env('MONITORING_ENABLED', true),
-        'webhook_url' => env('MONITORING_WEBHOOK_URL'),
-        'alert_threshold_oee' => env('ALERT_THRESHOLD_OEE', 60),
-    ],
-];
+class UserFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+            'activo' => true,
+            'remember_token' => Str::random(10),
+        ];
+    }
+}
 ```
 
 ---
 
-## 🔧 Variables de Entorno
+## 🔧 Mantenimiento de Base de Datos
 
-### 📄 `.env` - Configuración de Desarrollo
-```env
-# Aplicación
-APP_NAME="Fábrica Biodegradable"
-APP_ENV=local
-APP_KEY=base64:CLAVE_GENERADA_AUTOMATICAMENTE
-APP_DEBUG=true
-APP_URL=http://127.0.0.1:8000
-APP_LOCALE=es
-APP_FALLBACK_LOCALE=es
-APP_FAKER_LOCALE=es_BO
+### **Comandos Útiles**
+```bash
+# Ejecutar migraciones
+php artisan migrate
 
-# Base de datos
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=fabrica_biodegradable
-DB_USERNAME=root
-DB_PASSWORD=
+# Ejecutar seeders
+php artisan db:seed
 
-# Sesiones
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_ENCRYPT=false
+# Refrescar base de datos
+php artisan migrate:refresh --seed
 
-# Caché
-CACHE_STORE=database
+# Verificar estado de migraciones
+php artisan migrate:status
 
-# Colas
-QUEUE_CONNECTION=database
-
-# Broadcasting (Tiempo Real)
-BROADCAST_CONNECTION=reverb
-REVERB_APP_ID=347819
-REVERB_APP_KEY=3aymhakmwulvttdk1ha9
-REVERB_APP_SECRET=o16ydqnhriaf8pbi9kzu
-REVERB_HOST=127.0.0.1
-REVERB_PORT=8081
-REVERB_SCHEME=http
-
-# Logging
-LOG_CHANNEL=stack
-LOG_STACK=single
-LOG_LEVEL=debug
-
-# Autenticación
-AUTH_GUARD=web
-SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1
-
-# Servicios específicos
-SIMULACION_ENABLED=true
-SIMULACION_INTERVAL=5000
-MONITORING_ENABLED=true
-ALERT_THRESHOLD_OEE=60
+# Rollback de migraciones
+php artisan migrate:rollback
 ```
+
+### **Optimizaciones**
+- ✅ **Índices** en campos de búsqueda frecuente
+- ✅ **Relaciones** optimizadas con foreign keys
+- ✅ **Soft deletes** para datos críticos
+- ✅ **Timestamps** automáticos en todas las tablas
+- ✅ **Validaciones** a nivel de base de datos
 
 ---
 
-## 🚀 Configuraciones de Producción
-
-### **Diferencias en Producción**
-```env
-# Seguridad
-APP_ENV=production
-APP_DEBUG=false
-SESSION_SECURE_COOKIE=true
-SESSION_ENCRYPT=true
-
-# Performance
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-SESSION_DRIVER=redis
-
-# Logging
-LOG_CHANNEL=daily
-LOG_LEVEL=error
-
-# Broadcasting
-REVERB_SCHEME=https
-REVERB_PORT=443
-```
-
----
-
-*Configuraciones centralizadas que permiten la personalización y optimización del sistema según el entorno de ejecución (desarrollo, pruebas, producción).*
+*Estructura robusta de base de datos que soporta todas las operaciones del sistema de monitoreo y control de fábrica biodegradable.*
