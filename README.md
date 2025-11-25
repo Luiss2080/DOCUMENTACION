@@ -1,691 +1,658 @@
-# 5.2.5 Rutas del Sistema (Routes)
+# 5.2.7 Almacenamiento del Sistema (Storage)
 
-Contiene la definición de todas las rutas del sistema, incluyendo rutas web, API, canales de broadcasting y comandos de consola para el sistema de fábrica biodegradable.
+Contiene todos los archivos de almacenamiento del sistema, incluyendo logs, archivos subidos, cache, sesiones y estructura de almacenamiento para el sistema de fábrica biodegradable.
 
-## 📁 Estructura de Rutas
+## 📁 Estructura de Almacenamiento
 
 ```
-├── 📄 web.php - Rutas web principales de la aplicación
-├── 📄 api.php - Rutas de API REST para servicios externos
-├── 📄 channels.php - Canales de broadcasting en tiempo real
-└── 📄 console.php - Comandos de consola personalizados
-```
-
----
-
-## 🌐 Rutas Web (Interface de Usuario)
-
-### 📄 `routes/web.php`
-```php
-<?php
-
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\MaquinaController;
-use App\Http\Controllers\WelcomeController;
-use App\Http\Controllers\Planta\MonitorMaquinaController;
-use Illuminate\Support\Facades\Route;
-
-/*
-|--------------------------------------------------------------------------
-| Rutas Web
-|--------------------------------------------------------------------------
-|
-| Rutas para la interfaz web del sistema usando Inertia.js
-| Todas las rutas retornan componentes Vue.js renderizados
-|
-*/
-
-// Ruta raíz - Redirección a welcome
-Route::get('/', function () {
-    return redirect('/welcome');
-});
-
-// Página de bienvenida pública
-Route::get('/welcome', [WelcomeController::class, 'index'])
-    ->name('welcome');
-
-// ===== RUTAS PROTEGIDAS POR AUTENTICACIÓN =====
-Route::middleware(['auth', 'verified'])->group(function () {
-    
-    // Dashboard principal del sistema
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
-
-    // ===== GESTIÓN DE MÁQUINAS =====
-    Route::resource('maquinas', MaquinaController::class)->names([
-        'index' => 'maquinas.index',         // GET /maquinas
-        'create' => 'maquinas.create',       // GET /maquinas/create
-        'store' => 'maquinas.store',         // POST /maquinas
-        'show' => 'maquinas.show',           // GET /maquinas/{id}
-        'edit' => 'maquinas.edit',           // GET /maquinas/{id}/edit
-        'update' => 'maquinas.update',       // PUT/PATCH /maquinas/{id}
-        'destroy' => 'maquinas.destroy'      // DELETE /maquinas/{id}
-    ]);
-
-    // ===== MÓDULO DE PLANTA =====
-    Route::prefix('planta')->name('planta.')->group(function () {
-        
-        // Monitor de máquinas en tiempo real
-        Route::get('/monitor-maquina', [MonitorMaquinaController::class, 'index'])
-            ->name('monitor-maquina.index');
-        
-        Route::get('/monitor-maquina/{maquina}', [MonitorMaquinaController::class, 'show'])
-            ->name('monitor-maquina.show');
-    });
-
-    // ===== GESTIÓN DE PRODUCCIÓN =====
-    Route::prefix('produccion')->name('produccion.')->group(function () {
-        Route::get('/', [ProduccionController::class, 'index'])->name('index');
-        Route::get('/crear', [ProduccionController::class, 'create'])->name('create');
-        Route::post('/', [ProduccionController::class, 'store'])->name('store');
-        Route::get('/{produccion}', [ProduccionController::class, 'show'])->name('show');
-    });
-
-    // ===== GESTIÓN DE INVENTARIO =====
-    Route::prefix('inventario')->name('inventario.')->group(function () {
-        // Materias primas
-        Route::resource('materias-primas', MateriaPrimaController::class);
-        Route::resource('lotes-materia-prima', LoteMateriaPrimaController::class);
-        
-        // Productos
-        Route::resource('productos', ProductoController::class);
-        Route::resource('lotes-productos', LoteProductoController::class);
-        
-        // Proveedores
-        Route::resource('proveedores', ProveedorController::class);
-    });
-
-    // ===== GESTIÓN DE MANTENIMIENTO =====
-    Route::prefix('mantenimiento')->name('mantenimiento.')->group(function () {
-        Route::resource('programados', MantenimientoController::class);
-        Route::resource('paradas', ParadaController::class);
-        
-        // Reportes de mantenimiento
-        Route::get('/reportes', [MantenimientoController::class, 'reportes'])->name('reportes');
-        Route::get('/calendario', [MantenimientoController::class, 'calendario'])->name('calendario');
-    });
-
-    // ===== RECETAS Y FÓRMULAS =====
-    Route::prefix('recetas')->name('recetas.')->group(function () {
-        Route::resource('/', RecetaController::class)->parameters(['' => 'receta']);
-        Route::get('/{receta}/detalles', [RecetaController::class, 'detalles'])->name('detalles');
-        Route::post('/{receta}/duplicar', [RecetaController::class, 'duplicar'])->name('duplicar');
-    });
-
-    // ===== REPORTES Y ANALYTICS =====
-    Route::prefix('reportes')->name('reportes.')->group(function () {
-        Route::get('/', [ReporteController::class, 'index'])->name('index');
-        Route::get('/produccion', [ReporteController::class, 'produccion'])->name('produccion');
-        Route::get('/eficiencia', [ReporteController::class, 'eficiencia'])->name('eficiencia');
-        Route::get('/calidad', [ReporteController::class, 'calidad'])->name('calidad');
-        Route::get('/costos', [ReporteController::class, 'costos'])->name('costos');
-        
-        // Exportaciones
-        Route::post('/exportar/{tipo}', [ReporteController::class, 'exportar'])->name('exportar');
-    });
-
-    // ===== ADMINISTRACIÓN DEL SISTEMA =====
-    Route::prefix('admin')->name('admin.')->middleware(['role:Administrador'])->group(function () {
-        // Gestión de usuarios
-        Route::resource('usuarios', UsuarioController::class);
-        Route::post('/usuarios/{usuario}/toggle-status', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle-status');
-        
-        // Configuración del sistema
-        Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion');
-        Route::post('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
-        
-        // Logs del sistema
-        Route::get('/logs', [LogController::class, 'index'])->name('logs');
-        Route::get('/logs/{archivo}', [LogController::class, 'show'])->name('logs.show');
-    });
-});
-
-// ===== RUTAS DE AUTENTICACIÓN =====
-require __DIR__.'/auth.php';
+├── 📁 app/
+│   ├── 📁 public/ - Archivos públicos accesibles vía web
+│   │   ├── 📁 maquinas/ - Fotos y documentos de máquinas
+│   │   ├── 📁 usuarios/ - Fotos de perfil de usuarios
+│   │   ├── 📁 reportes/ - Reportes generados
+│   │   ├── 📁 documentos/ - Documentos del sistema
+│   │   └── 📁 temp/ - Archivos temporales
+│   └── 📁 private/ - Archivos privados no accesibles vía web
+│       ├── 📁 backups/ - Respaldos de base de datos
+│       ├── 📁 imports/ - Archivos para importación masiva
+│       ├── 📁 exports/ - Exportaciones confidenciales
+│       └── 📁 certificates/ - Certificados y documentos sensibles
+│
+├── 📁 framework/
+│   ├── 📁 cache/ - Cache de aplicación y datos
+│   │   ├── 📁 data/ - Cache de datos
+│   │   └── 📄 services.php - Cache de servicios
+│   ├── 📁 sessions/ - Archivos de sesión (si usa driver file)
+│   ├── 📁 testing/ - Archivos temporales de testing
+│   └── 📁 views/ - Cache de vistas compiladas
+│
+└── 📁 logs/
+    ├── 📄 laravel.log - Log principal de la aplicación
+    ├── 📄 produccion.log - Logs específicos de producción
+    ├── 📄 maquinas.log - Logs de eventos de máquinas
+    ├── 📄 seguridad.log - Logs de seguridad y accesos
+    └── 📄 errores.log - Logs de errores críticos
 ```
 
 ---
 
-## 🔌 Rutas API (Servicios REST)
+## 📂 Almacenamiento de Aplicación (app/)
 
-### 📄 `routes/api.php`
-```php
-<?php
+### **Archivos Públicos (`app/public/`)**
 
-use App\Http\Controllers\Api\SimulacionController;
-use App\Http\Controllers\Api\MaquinaEstadoController;
-use App\Http\Controllers\Api\ProduccionApiController;
-use App\Http\Controllers\Planta\MonitorMaquinaController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+#### 📁 `storage/app/public/maquinas/`
+```
+maquinas/
+├── maquina_001/
+│   ├── foto_principal.jpg (1920x1080) - Foto principal de la máquina
+│   ├── foto_lateral.jpg (1920x1080) - Vista lateral
+│   ├── manual_operacion.pdf - Manual de operación
+│   ├── ficha_tecnica.pdf - Especificaciones técnicas
+│   └── historial_mantenimiento.xlsx - Historial de mantenimientos
+├── maquina_002/
+│   ├── foto_principal.png
+│   ├── diagrama_electrico.pdf
+│   └── certificados/
+│       ├── certificado_ce.pdf
+│       └── certificado_iso.pdf
+└── tipos/
+    ├── extrusora_default.jpg - Imagen por defecto para extrusoras
+    ├── mezcladora_default.jpg - Imagen por defecto para mezcladoras
+    └── prensa_default.jpg - Imagen por defecto para prensas
+```
 
-/*
-|--------------------------------------------------------------------------
-| Rutas API
-|--------------------------------------------------------------------------
-|
-| Rutas para servicios REST y integraciones externas
-| Algunas rutas requieren autenticación con Laravel Sanctum
-|
-*/
+#### 📁 `storage/app/public/usuarios/`
+```
+usuarios/
+├── perfil_1.jpg (400x400) - Foto de perfil usuario 1
+├── perfil_2.png (400x400) - Foto de perfil usuario 2
+├── perfil_3.jpg (400x400) - Foto de perfil usuario 3
+└── default/
+    ├── avatar_admin.png - Avatar por defecto administrador
+    ├── avatar_operador.png - Avatar por defecto operador
+    └── avatar_encargado.png - Avatar por defecto encargado
+```
 
-// ===== RUTA DE USUARIO AUTENTICADO =====
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+#### 📁 `storage/app/public/reportes/`
+```
+reportes/
+├── 2025/
+│   ├── 01/ - Enero 2025
+│   │   ├── reporte_produccion_2025_01_01.pdf - Reporte diario
+│   │   ├── reporte_eficiencia_semanal_01.xlsx - Reporte semanal
+│   │   └── reporte_mensual_enero_2025.pdf - Reporte mensual
+│   └── 02/ - Febrero 2025
+│       └── ...
+├── templates/
+│   ├── plantilla_reporte_diario.xlsx
+│   ├── plantilla_reporte_mensual.docx
+│   └── plantilla_certificado_calidad.pdf
+└── automaticos/
+    ├── reporte_automatico_2025_01_15.json - Data para dashboard
+    ├── metricas_tiempo_real.json - Métricas en tiempo real
+    └── estadisticas_resumen.json - Estadísticas de resumen
+```
 
-// ===== SIMULACIÓN DE PRODUCCIÓN (Sin autenticación) =====
-Route::prefix('simulacion')->group(function () {
-    // Endpoint principal para simuladores externos
-    Route::post('/produccion', [SimulacionController::class, 'simularProduccion'])
-        ->name('api.simulacion.produccion');
-    
-    // Configuración de simulación
-    Route::get('/configuracion', [SimulacionController::class, 'configuracion'])
-        ->name('api.simulacion.config');
-    
-    // Estado de simulación
-    Route::get('/estado', [SimulacionController::class, 'estado'])
-        ->name('api.simulacion.estado');
-    
-    // Detener simulación
-    Route::post('/detener', [SimulacionController::class, 'detener'])
-        ->name('api.simulacion.detener');
-});
+#### 📁 `storage/app/public/documentos/`
+```
+documentos/
+├── manuales/
+│   ├── manual_sistema_completo.pdf
+│   ├── manual_operador.pdf
+│   ├── manual_mantenimiento.pdf
+│   └── manual_administrador.pdf
+├── procedimientos/
+│   ├── sop_inicio_produccion.pdf
+│   ├── sop_parada_emergencia.pdf
+│   ├── sop_mantenimiento_preventivo.pdf
+│   └── sop_calidad_producto.pdf
+├── certificaciones/
+│   ├── iso_9001_certificado.pdf
+│   ├── iso_14001_certificado.pdf
+│   └── certificado_biodegradable.pdf
+└── formatos/
+    ├── formato_orden_produccion.xlsx
+    ├── formato_inspeccion_calidad.xlsx
+    └── formato_reporte_incidente.docx
+```
 
-// ===== ESTADOS DE MÁQUINAS =====
-Route::prefix('maquinas')->group(function () {
-    // Estado actual de una máquina específica
-    Route::get('/{maquina}/estado', [MonitorMaquinaController::class, 'getEstado'])
-        ->name('api.maquina.estado');
-    
-    // Actualizar estado de máquina (Protegido)
-    Route::put('/{maquina}/estado', [MaquinaEstadoController::class, 'updateEstado'])
-        ->middleware('auth:sanctum')
-        ->name('api.maquina.update-estado');
-    
-    // Configurar modo simulación
-    Route::put('/{maquina}/simulacion', [MaquinaEstadoController::class, 'updateSimulacion'])
-        ->middleware('auth:sanctum')
-        ->name('api.maquina.simulacion');
-    
-    // Historial de estados
-    Route::get('/{maquina}/historial', [MaquinaEstadoController::class, 'historial'])
-        ->middleware('auth:sanctum')
-        ->name('api.maquina.historial');
-});
+### **Archivos Privados (`app/private/`)**
 
-// ===== PRODUCCIÓN API (Protegidas) =====
-Route::middleware('auth:sanctum')->prefix('produccion')->group(function () {
-    // Estadísticas de producción
-    Route::get('/estadisticas', [ProduccionApiController::class, 'estadisticas'])
-        ->name('api.produccion.estadisticas');
-    
-    // Producción por período
-    Route::get('/periodo', [ProduccionApiController::class, 'porPeriodo'])
-        ->name('api.produccion.periodo');
-    
-    // OEE por máquina
-    Route::get('/oee/{maquina}', [ProduccionApiController::class, 'oeeByMaquina'])
-        ->name('api.produccion.oee');
-    
-    // Eficiencia general
-    Route::get('/eficiencia', [ProduccionApiController::class, 'eficiencia'])
-        ->name('api.produccion.eficiencia');
-    
-    // Crear nuevo registro de producción
-    Route::post('/', [ProduccionApiController::class, 'store'])
-        ->name('api.produccion.store');
-});
+#### 📁 `storage/app/private/backups/`
+```bash
+# Script de ejemplo para generar backups
+#!/bin/bash
+# backup_daily.sh
 
-// ===== INVENTARIO API (Protegidas) =====
-Route::middleware('auth:sanctum')->prefix('inventario')->group(function () {
-    // Stock de materias primas
-    Route::get('/materias-primas/stock', [InventarioApiController::class, 'stockMateriasPrimas'])
-        ->name('api.inventario.stock-mp');
-    
-    // Stock de productos
-    Route::get('/productos/stock', [InventarioApiController::class, 'stockProductos'])
-        ->name('api.inventario.stock-productos');
-    
-    // Movimientos de inventario
-    Route::post('/movimientos', [InventarioApiController::class, 'registrarMovimiento'])
-        ->name('api.inventario.movimiento');
-    
-    // Alertas de stock bajo
-    Route::get('/alertas', [InventarioApiController::class, 'alertas'])
-        ->name('api.inventario.alertas');
-});
+DATE=$(date +%Y%m%d_%H%M%S)
+DB_NAME="fabrica_biodegradable"
+BACKUP_DIR="/storage/app/private/backups"
 
-// ===== MANTENIMIENTO API (Protegidas) =====
-Route::middleware('auth:sanctum')->prefix('mantenimiento')->group(function () {
-    // Próximos mantenimientos
-    Route::get('/proximos', [MantenimientoApiController::class, 'proximos'])
-        ->name('api.mantenimiento.proximos');
-    
-    // Registrar parada de máquina
-    Route::post('/paradas', [MantenimientoApiController::class, 'registrarParada'])
-        ->name('api.mantenimiento.parada');
-    
-    // Finalizar mantenimiento
-    Route::patch('/finalizar/{mantenimiento}', [MantenimientoApiController::class, 'finalizar'])
-        ->name('api.mantenimiento.finalizar');
-});
+# Crear backup de base de datos
+mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > "$BACKUP_DIR/db_backup_$DATE.sql"
 
-// ===== NOTIFICACIONES API (Protegidas) =====
-Route::middleware('auth:sanctum')->prefix('notificaciones')->group(function () {
-    // Obtener notificaciones del usuario
-    Route::get('/', [NotificacionApiController::class, 'index'])
-        ->name('api.notificaciones.index');
-    
-    // Marcar como leída
-    Route::patch('/{notificacion}/leida', [NotificacionApiController::class, 'marcarLeida'])
-        ->name('api.notificaciones.leida');
-    
-    // Marcar todas como leídas
-    Route::patch('/todas/leidas', [NotificacionApiController::class, 'marcarTodasLeidas'])
-        ->name('api.notificaciones.todas-leidas');
-});
+# Comprimir backup
+gzip "$BACKUP_DIR/db_backup_$DATE.sql"
 
-// ===== WEBHOOKS (Sin autenticación pero con validación) =====
-Route::prefix('webhooks')->group(function () {
-    // Webhook para sistemas externos
-    Route::post('/produccion', [WebhookController::class, 'produccion'])
-        ->middleware('webhook.signature')
-        ->name('api.webhook.produccion');
-    
-    // Webhook para sensores IoT
-    Route::post('/sensores', [WebhookController::class, 'sensores'])
-        ->middleware('webhook.signature')
-        ->name('api.webhook.sensores');
-});
+# Crear backup de archivos críticos
+tar -czf "$BACKUP_DIR/files_backup_$DATE.tar.gz" \
+    storage/app/public/maquinas \
+    storage/app/public/documentos \
+    storage/app/private/certificates
 
-// ===== HEALTH CHECK =====
-Route::get('/health', function () {
-    return response()->json([
-        'status' => 'ok',
-        'timestamp' => now(),
-        'version' => config('app.version', '1.0.0'),
-        'environment' => config('app.env')
-    ]);
-})->name('api.health');
+# Limpiar backups antiguos (más de 30 días)
+find $BACKUP_DIR -name "*.gz" -mtime +30 -delete
 
-// ===== METRICS PARA MONITOREO =====
-Route::get('/metrics', [MetricsController::class, 'prometheus'])
-    ->middleware('metrics.auth')
-    ->name('api.metrics');
+echo "Backup completado: $DATE"
+```
+
+#### 📁 `storage/app/private/imports/`
+```
+imports/
+├── plantillas/
+│   ├── plantilla_maquinas.xlsx - Para importación masiva de máquinas
+│   ├── plantilla_usuarios.xlsx - Para importación de usuarios
+│   ├── plantilla_productos.xlsx - Para importación de productos
+│   └── plantilla_materias_primas.xlsx - Para materias primas
+├── procesados/
+│   ├── import_maquinas_2025_01_15.xlsx - Archivo procesado
+│   ├── import_usuarios_2025_01_10.xlsx - Archivo procesado
+│   └── errores/
+│       ├── errores_import_2025_01_15.log - Log de errores
+│       └── filas_rechazadas_2025_01_15.xlsx - Datos rechazados
+└── pendientes/
+    ├── nuevas_maquinas.xlsx - Pendiente de procesar
+    └── actualizacion_usuarios.csv - Pendiente de procesar
 ```
 
 ---
 
-## 📡 Canales de Broadcasting
+## 🗄️ Framework de Laravel (framework/)
 
-### 📄 `routes/channels.php`
+### **Cache del Sistema (`framework/cache/`)**
+
+#### 📁 `storage/framework/cache/data/`
 ```php
+// Ejemplo de estructura de cache
 <?php
+// Cache de configuración de máquinas
+'maquinas_config' => [
+    'tipos_disponibles' => ['Extrusora', 'Mezcladora', 'Prensa'],
+    'capacidad_maxima_global' => 5000, // kg/día
+    'oee_target' => 85, // %
+    'cached_at' => '2025-01-15 10:30:00'
+];
 
-use Illuminate\Support\Facades\Broadcast;
+// Cache de estadísticas del dashboard
+'dashboard_stats' => [
+    'produccion_hoy' => 2847.5, // kg
+    'maquinas_activas' => 8,
+    'oee_promedio' => 87.3, // %
+    'eficiencia' => 92.1, // %
+    'last_update' => '2025-01-15 14:45:12'
+];
 
-/*
-|--------------------------------------------------------------------------
-| Canales de Broadcasting
-|--------------------------------------------------------------------------
-|
-| Definición de canales para eventos en tiempo real usando Laravel Echo
-| y Laravel Reverb para WebSockets
-|
-*/
+// Cache de permisos de usuario
+'user_permissions_123' => [
+    'permissions' => ['ver_dashboard', 'gestionar_maquinas', 'ver_reportes'],
+    'roles' => ['Operador'],
+    'cached_at' => '2025-01-15 09:00:00'
+];
+```
 
-// ===== CANAL PÚBLICO DE PRODUCCIÓN =====
-// Canal para transmitir actualizaciones de producción en tiempo real
-Broadcast::channel('produccion', function ($user) {
-    // Canal público - cualquier usuario autenticado puede escuchar
-    return $user ? true : false;
-});
+#### 📄 `storage/framework/services.php`
+```php
+<?php return [
+    'providers' => [
+        'Illuminate\Auth\AuthServiceProvider',
+        'Illuminate\Broadcasting\BroadcastServiceProvider',
+        'App\Providers\AppServiceProvider',
+        'App\Providers\ProduccionServiceProvider',
+        'Laravel\Sanctum\SanctumServiceProvider',
+        'Spatie\Permission\PermissionServiceProvider',
+    ],
+    'eager' => [
+        'Illuminate\Auth\AuthServiceProvider',
+        'App\Providers\AppServiceProvider',
+    ],
+    'deferred' => [
+        'Illuminate\Broadcasting\BroadcastServiceProvider',
+    ],
+    'when' => []
+];
+```
 
-// ===== CANALES DE MÁQUINAS =====
-// Canal específico para cada máquina individual
-Broadcast::channel('maquina.{maquinaId}', function ($user, $maquinaId) {
-    // Verificar que el usuario tenga permiso para ver esta máquina
-    return $user && $user->can('ver_monitor_maquinas');
-});
-
-// Canal para todas las máquinas (dashboard general)
-Broadcast::channel('maquinas', function ($user) {
-    return $user && $user->can('ver_dashboard');
-});
-
-// ===== CANALES DE ALERTAS =====
-// Canal para alertas críticas del sistema
-Broadcast::channel('alertas.criticas', function ($user) {
-    // Solo usuarios con rol de administrador o encargado
-    return $user && ($user->hasRole('Administrador') || $user->hasRole('Encargado'));
-});
-
-// Canal para alertas de mantenimiento
-Broadcast::channel('alertas.mantenimiento', function ($user) {
-    return $user && $user->can('gestionar_mantenimiento');
-});
-
-// Canal para alertas de calidad
-Broadcast::channel('alertas.calidad', function ($user) {
-    return $user && $user->can('control_calidad');
-});
-
-// ===== CANALES PRIVADOS DE USUARIO =====
-// Canal privado para notificaciones específicas del usuario
-Broadcast::channel('user.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
-
-// Canal para el equipo/área de trabajo del usuario
-Broadcast::channel('equipo.{equipoId}', function ($user, $equipoId) {
-    return $user->equipos->contains($equipoId);
-});
-
-// ===== CANALES DE ADMINISTRACIÓN =====
-// Canal para eventos del sistema (solo administradores)
-Broadcast::channel('sistema.eventos', function ($user) {
-    return $user && $user->hasRole('Administrador');
-});
-
-// Canal para logs en tiempo real
-Broadcast::channel('sistema.logs', function ($user) {
-    return $user && $user->can('ver_logs_sistema');
-});
-
-// ===== CANALES DE REPORTES =====
-// Canal para notificar cuando un reporte está listo
-Broadcast::channel('reportes.{userId}', function ($user, $userId) {
-    return (int) $user->id === (int) $userId;
-});
-
-// ===== CANALES DE PRODUCCIÓN ESPECÍFICA =====
-// Canal para seguimiento de una producción específica
-Broadcast::channel('produccion.{produccionId}', function ($user, $produccionId) {
-    // Verificar que el usuario esté involucrado en esta producción
-    $produccion = \App\Models\Produccion::find($produccionId);
-    return $produccion && (
-        $user->id === $produccion->operador_id ||
-        $user->id === $produccion->encargado_id ||
-        $user->hasRole('Administrador')
-    );
-});
-
-// ===== CANALES DE INVENTARIO =====
-// Canal para alertas de stock bajo
-Broadcast::channel('inventario.alertas', function ($user) {
-    return $user && $user->can('gestionar_inventario');
-});
-
-// Canal para movimientos de inventario
-Broadcast::channel('inventario.movimientos', function ($user) {
-    return $user && $user->can('ver_inventario');
-});
-
-// ===== CANAL DE PRESENCIA (USUARIOS CONECTADOS) =====
-// Canal para mostrar qué usuarios están viendo el dashboard
-Broadcast::channel('dashboard.presence', function ($user) {
-    if ($user) {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'avatar' => $user->foto_perfil,
-            'role' => $user->getRoleNames()->first()
-        ];
+### **Sesiones (`framework/sessions/`)**
+```php
+// Ejemplo de archivo de sesión (cuando se usa driver 'file')
+// laravel_session_abc123def456
+a:4:{
+    s:6:"_token";s:40:"Xy9z8WqP3LmK5NvR7TbH2JcF6GdE9QaS";
+    s:9:"_previous";a:1:{
+        s:3:"url";s:34:"http://localhost:8000/dashboard";
     }
-    return false;
-});
-
-// ===== CANALES DE SIMULACIÓN =====
-// Canal para eventos de simulación (desarrollo/testing)
-Broadcast::channel('simulacion.eventos', function ($user) {
-    return $user && (
-        config('app.env') !== 'production' || 
-        $user->hasRole('Administrador')
-    );
-});
+    s:6:"_flash";a:2:{
+        s:3:"old";a:0:{}
+        s:3:"new";a:0:{}
+    }
+    s:50:"login_web_59ba36addc2b2f9401580f014c7f58ea4e30989d";i:1;
+    s:4:"user";a:5:{
+        s:2:"id";i:1;
+        s:4:"name";s:13:"Administrador";
+        s:5:"email";s:25:"admin@fabricabio.com";
+        s:6:"activo";b:1;
+        s:5:"roles";a:1:{i:0;s:13:"Administrador";}
+    }
+}
 ```
 
 ---
 
-## ⚡ Comandos de Consola
+## 📊 Sistema de Logs (logs/)
 
-### 📄 `routes/console.php`
+### 📄 `storage/logs/laravel.log`
+```log
+[2025-01-15 14:30:15] production.INFO: Usuario autenticado {"user_id":1,"email":"admin@fabricabio.com","ip":"192.168.1.100"} 
+
+[2025-01-15 14:30:45] production.INFO: Nueva producción registrada {"maquina_id":3,"kg_producidos":45.7,"oee":89.2,"velocidad":1150} 
+
+[2025-01-15 14:31:20] production.WARNING: OEE por debajo del umbral {"maquina_id":5,"oee_actual":62.3,"umbral_minimo":65} 
+
+[2025-01-15 14:32:05] production.ERROR: Error en conexión con máquina {"maquina_id":2,"error":"Connection timeout","attempts":3} 
+
+[2025-01-15 14:33:10] production.INFO: Mantenimiento programado completado {"maquina_id":1,"tipo":"Preventivo","duracion_minutos":45}
+```
+
+### 📄 `storage/logs/produccion.log`
+```log
+[2025-01-15 14:30:45] INFO: Producción iniciada {"maquina":"EXT-001","operador":"Juan Pérez","turno":"Mañana"}
+[2025-01-15 14:35:12] INFO: Incremento producción {"maquina":"EXT-001","kg_incremento":12.3,"total_acumulado":127.8}
+[2025-01-15 14:40:33] WARNING: Velocidad reducida {"maquina":"EXT-001","velocidad_anterior":1200,"velocidad_actual":980}
+[2025-01-15 14:45:18] INFO: OEE calculado {"maquina":"EXT-001","oee":87.5,"tiempo_ciclo":2.1,"disponibilidad":0.95}
+[2025-01-15 15:00:00] INFO: Producción finalizada {"maquina":"EXT-001","total_producido":156.7,"duracion_horas":2.5}
+```
+
+### 📄 `storage/logs/maquinas.log`
+```log
+[2025-01-15 08:00:00] INFO: Sistema iniciado - Verificando estados {"maquinas_total":10}
+[2025-01-15 08:01:15] INFO: Máquina activada {"id":1,"codigo":"EXT-001","nombre":"Extrusora Principal"}
+[2025-01-15 09:30:22] WARNING: Temperatura alta detectada {"maquina":"MEZ-002","temperatura":85,"limite_maximo":80}
+[2025-01-15 10:15:45] ERROR: Fallo de comunicación {"maquina":"PRE-003","ultimo_ping":"2025-01-15 10:12:30"}
+[2025-01-15 11:00:00] INFO: Mantenimiento iniciado {"maquina":"COR-004","tipo":"Preventivo","tecnico":"Carlos López"}
+[2025-01-15 16:30:00] INFO: Todas las máquinas en estado seguro para fin de turno
+```
+
+### 📄 `storage/logs/seguridad.log`
+```log
+[2025-01-15 08:30:15] INFO: Login exitoso {"user":"admin@fabricabio.com","ip":"192.168.1.100","user_agent":"Mozilla/5.0..."}
+[2025-01-15 09:15:30] WARNING: Intento de acceso denegado {"user":"operador@fabricabio.com","recurso":"/admin/usuarios","ip":"192.168.1.105"}
+[2025-01-15 10:45:22] ERROR: Múltiples intentos de login fallido {"email":"unknown@test.com","attempts":5,"ip":"203.45.67.89"}
+[2025-01-15 11:20:10] INFO: Cambio de contraseña {"user_id":3,"ip":"192.168.1.102"}
+[2025-01-15 14:30:45] WARNING: Token API utilizado múltiples veces {"token_id":"abc123","requests_count":50,"last_ip":"192.168.1.110"}
+```
+
+---
+
+## 🔧 Configuración de Storage
+
+### 📄 `config/filesystems.php` - Configuración Personalizada
 ```php
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schedule;
-
-/*
-|--------------------------------------------------------------------------
-| Comandos de Consola
-|--------------------------------------------------------------------------
-|
-| Comandos personalizados y programación de tareas para el sistema
-| de fábrica biodegradable
-|
-*/
-
-// ===== COMANDO DE INSPIRACIÓN =====
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote')->hourly();
-
-// ===== COMANDOS DE LIMPIEZA =====
-Artisan::command('fabrica:limpiar-datos-antiguos', function () {
-    $this->info('Limpiando datos antiguos del sistema...');
+return [
+    'default' => env('FILESYSTEM_DISK', 'local'),
     
-    // Limpiar producciones antiguas (más de 1 año)
-    $producciones = \App\Models\Produccion::where('created_at', '<', now()->subYear())->count();
-    \App\Models\Produccion::where('created_at', '<', now()->subYear())->delete();
-    $this->info("Eliminadas {$producciones} producciones antiguas");
+    'disks' => [
+        'local' => [
+            'driver' => 'local',
+            'root' => storage_path('app'),
+            'throw' => false,
+        ],
+        
+        'public' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+        
+        // Disco para documentos privados
+        'private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'throw' => false,
+        ],
+        
+        // Disco para backups
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/backups'),
+            'throw' => false,
+        ],
+        
+        // Disco para reportes temporales
+        'temp_reports' => [
+            'driver' => 'local',
+            'root' => storage_path('app/temp'),
+            'throw' => false,
+        ],
+        
+        // Disco para logs personalizados
+        'logs' => [
+            'driver' => 'local',
+            'root' => storage_path('logs'),
+            'throw' => false,
+        ],
+    ],
+];
+```
+
+---
+
+## 🧹 Scripts de Limpieza
+
+### 📄 `storage/scripts/cleanup.php`
+```php
+<?php
+/**
+ * Script de limpieza automática de storage
+ * Ejecutar diariamente via cron job
+ */
+
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+$app = require_once __DIR__ . '/../../bootstrap/app.php';
+$app->bind('request', \Illuminate\Http\Request::class);
+
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Carbon\Carbon;
+
+class StorageCleanup {
     
-    // Limpiar logs antiguos (más de 3 meses)
-    $logs = \Illuminate\Support\Facades\File::glob(storage_path('logs/*.log'));
-    $eliminados = 0;
-    foreach ($logs as $log) {
-        if (filemtime($log) < time() - (90 * 24 * 60 * 60)) {
-            unlink($log);
-            $eliminados++;
+    public function run()
+    {
+        $this->cleanTempFiles();
+        $this->cleanOldLogs();
+        $this->cleanOldBackups();
+        $this->cleanOldReports();
+        $this->optimizeImages();
+        
+        echo "✅ Limpieza de storage completada\n";
+    }
+    
+    private function cleanTempFiles()
+    {
+        echo "🧹 Limpiando archivos temporales...\n";
+        
+        // Limpiar archivos temporales más antiguos de 24 horas
+        $tempPath = storage_path('app/temp');
+        if (File::exists($tempPath)) {
+            $files = File::files($tempPath);
+            $cleaned = 0;
+            
+            foreach ($files as $file) {
+                if ($file->getMTime() < time() - 86400) { // 24 horas
+                    File::delete($file);
+                    $cleaned++;
+                }
+            }
+            
+            echo "   - Eliminados {$cleaned} archivos temporales\n";
         }
     }
-    $this->info("Eliminados {$eliminados} archivos de log antiguos");
     
-    $this->info('✅ Limpieza completada');
-})->purpose('Limpiar datos antiguos del sistema');
-
-// ===== COMANDOS DE MANTENIMIENTO =====
-Artisan::command('fabrica:verificar-mantenimientos', function () {
-    $this->info('Verificando mantenimientos pendientes...');
-    
-    // Buscar mantenimientos que deberían haberse realizado
-    $pendientes = \App\Models\Mantenimiento::whereNull('fecha_realizada')
-        ->where('fecha_programada', '<=', now())
-        ->count();
-    
-    if ($pendientes > 0) {
-        $this->warn("⚠️  Hay {$pendientes} mantenimientos pendientes");
+    private function cleanOldLogs()
+    {
+        echo "📋 Rotando logs antiguos...\n";
         
-        // Enviar notificación a administradores
-        $admins = \App\Models\User::role('Administrador')->get();
-        foreach ($admins as $admin) {
-            $admin->notify(new \App\Notifications\MantenimientosPendientes($pendientes));
+        $logPath = storage_path('logs');
+        $files = File::glob($logPath . '/*.log');
+        $rotated = 0;
+        
+        foreach ($files as $file) {
+            $fileInfo = pathinfo($file);
+            $fileDate = filemtime($file);
+            
+            // Rotar logs más antiguos de 7 días
+            if ($fileDate < time() - (7 * 24 * 60 * 60)) {
+                $newName = $fileInfo['dirname'] . '/' . 
+                          $fileInfo['filename'] . '_' . 
+                          date('Y_m_d', $fileDate) . '.log';
+                
+                rename($file, $newName);
+                gzip($newName);
+                $rotated++;
+            }
         }
-    } else {
-        $this->info('✅ Todos los mantenimientos están al día');
+        
+        echo "   - Rotados {$rotated} archivos de log\n";
     }
-})->purpose('Verificar mantenimientos pendientes');
-
-// ===== COMANDOS DE REPORTES =====
-Artisan::command('fabrica:generar-reporte-diario', function () {
-    $this->info('Generando reporte diario...');
     
-    // Generar estadísticas del día
-    $estadisticas = [
-        'fecha' => now()->format('Y-m-d'),
-        'produccion_total' => \App\Models\Produccion::whereDate('created_at', today())->sum('kg_producidos'),
-        'maquinas_activas' => \App\Models\Maquina::whereHas('estadoVivo', function($q) {
-            $q->where('velocidad_actual', '>', 0);
-        })->count(),
-        'eficiencia_promedio' => \App\Models\Produccion::whereDate('created_at', today())->avg('oee'),
+    private function cleanOldBackups()
+    {
+        echo "💾 Limpiando backups antiguos...\n";
+        
+        $backupPath = storage_path('app/private/backups');
+        $files = File::glob($backupPath . '/*.gz');
+        $deleted = 0;
+        
+        foreach ($files as $file) {
+            // Eliminar backups más antiguos de 30 días
+            if (filemtime($file) < time() - (30 * 24 * 60 * 60)) {
+                File::delete($file);
+                $deleted++;
+            }
+        }
+        
+        echo "   - Eliminados {$deleted} backups antiguos\n";
+    }
+    
+    private function cleanOldReports()
+    {
+        echo "📊 Archivando reportes antiguos...\n";
+        
+        $reportPath = storage_path('app/public/reportes');
+        
+        // Mover reportes más antiguos de 90 días a archivo
+        $cutoffDate = Carbon::now()->subDays(90);
+        $archivePath = storage_path('app/private/reportes_archivo');
+        
+        if (!File::exists($archivePath)) {
+            File::makeDirectory($archivePath, 0755, true);
+        }
+        
+        $this->moveOldFiles($reportPath, $archivePath, $cutoffDate);
+    }
+    
+    private function optimizeImages()
+    {
+        echo "🖼️ Optimizando imágenes...\n";
+        
+        // Aquí se podría implementar optimización de imágenes
+        // usando librerías como ImageMagick o GD
+        
+        echo "   - Optimización de imágenes completada\n";
+    }
+    
+    private function moveOldFiles($source, $destination, $cutoffDate)
+    {
+        if (!File::exists($source)) return;
+        
+        $files = File::allFiles($source);
+        $moved = 0;
+        
+        foreach ($files as $file) {
+            $fileDate = Carbon::createFromTimestamp($file->getMTime());
+            
+            if ($fileDate->lt($cutoffDate)) {
+                $relativePath = $file->getRelativePath();
+                $destDir = $destination . '/' . $relativePath;
+                
+                if (!File::exists($destDir)) {
+                    File::makeDirectory($destDir, 0755, true);
+                }
+                
+                $destFile = $destDir . '/' . $file->getFilename();
+                File::move($file->getPathname(), $destFile);
+                $moved++;
+            }
+        }
+        
+        echo "   - Archivados {$moved} archivos de reportes\n";
+    }
+}
+
+// Ejecutar limpieza
+$cleanup = new StorageCleanup();
+$cleanup->run();
+```
+
+---
+
+## 📈 Monitoreo de Storage
+
+### 📄 `storage/scripts/monitor.php`
+```php
+<?php
+/**
+ * Script de monitoreo de uso de storage
+ */
+
+use Illuminate\Support\Facades\File;
+
+class StorageMonitor {
+    
+    private $thresholds = [
+        'warning' => 80,  // 80% de uso
+        'critical' => 90  // 90% de uso
     ];
     
-    // Guardar reporte
-    \Illuminate\Support\Facades\Storage::disk('local')->put(
-        'reportes/diario-' . now()->format('Y-m-d') . '.json',
-        json_encode($estadisticas, JSON_PRETTY_PRINT)
-    );
-    
-    $this->info('✅ Reporte diario generado');
-    $this->table(['Métrica', 'Valor'], [
-        ['Producción Total', $estadisticas['produccion_total'] . ' kg'],
-        ['Máquinas Activas', $estadisticas['maquinas_activas']],
-        ['Eficiencia Promedio', round($estadisticas['eficiencia_promedio'], 2) . '%'],
-    ]);
-})->purpose('Generar reporte diario automático');
-
-// ===== COMANDOS DE SIMULACIÓN =====
-Artisan::command('fabrica:simular-produccion {maquina} {--duracion=60}', function () {
-    $maquinaId = $this->argument('maquina');
-    $duracion = $this->option('duracion');
-    
-    $maquina = \App\Models\Maquina::find($maquinaId);
-    if (!$maquina) {
-        $this->error('Máquina no encontrada');
-        return 1;
-    }
-    
-    $this->info("Simulando producción en {$maquina->nombre} por {$duracion} minutos...");
-    
-    $inicio = now();
-    $contador = 0;
-    
-    while (now()->diffInMinutes($inicio) < $duracion) {
-        // Simular datos de producción
-        $datos = [
-            'maquina_id' => $maquinaId,
-            'kg_incremento' => rand(50, 200) / 100, // 0.5 - 2.0 kg
-            'oee' => rand(70, 95), // 70% - 95%
-            'velocidad' => rand(800, 1200) / 10, // 80 - 120 kg/h
+    public function checkUsage()
+    {
+        $storagePath = storage_path();
+        $totalSpace = disk_total_space($storagePath);
+        $freeSpace = disk_free_space($storagePath);
+        $usedSpace = $totalSpace - $freeSpace;
+        $usagePercent = ($usedSpace / $totalSpace) * 100;
+        
+        $report = [
+            'timestamp' => now(),
+            'total_space' => $this->formatBytes($totalSpace),
+            'used_space' => $this->formatBytes($usedSpace),
+            'free_space' => $this->formatBytes($freeSpace),
+            'usage_percent' => round($usagePercent, 2),
+            'status' => $this->getStatus($usagePercent),
+            'directories' => $this->getDirectorySizes()
         ];
         
-        // Registrar producción
-        app(\App\Services\Contracts\ProduccionServiceInterface::class)
-            ->registrarProduccion(
-                $datos['maquina_id'],
-                $datos['kg_incremento'],
-                $datos['oee'],
-                $datos['velocidad']
-            );
+        $this->saveReport($report);
+        $this->checkAlerts($report);
         
-        $contador++;
-        $this->info("Registro #{$contador} - {$datos['kg_incremento']} kg");
-        
-        // Esperar 5 segundos antes del siguiente registro
-        sleep(5);
+        return $report;
     }
     
-    $this->info("✅ Simulación completada - {$contador} registros generados");
-})->purpose('Simular producción para testing');
-
-// ===== COMANDOS DE BACKUP =====
-Artisan::command('fabrica:backup', function () {
-    $this->info('Iniciando backup del sistema...');
-    
-    $fecha = now()->format('Y_m_d_His');
-    $nombreBackup = "backup_{$fecha}.sql";
-    
-    // Comando de mysqldump
-    $comando = sprintf(
-        'mysqldump -u %s -p%s %s > %s',
-        config('database.connections.mysql.username'),
-        config('database.connections.mysql.password'),
-        config('database.connections.mysql.database'),
-        storage_path("backups/{$nombreBackup}")
-    );
-    
-    // Crear directorio si no existe
-    if (!is_dir(storage_path('backups'))) {
-        mkdir(storage_path('backups'), 0755, true);
-    }
-    
-    // Ejecutar backup
-    exec($comando, $output, $returnCode);
-    
-    if ($returnCode === 0) {
-        $this->info("✅ Backup creado: {$nombreBackup}");
+    private function getDirectorySizes()
+    {
+        $directories = [
+            'logs' => storage_path('logs'),
+            'app' => storage_path('app'),
+            'framework' => storage_path('framework'),
+        ];
         
-        // Comprimir archivo
-        exec("gzip " . storage_path("backups/{$nombreBackup}"));
-        $this->info("✅ Backup comprimido");
-    } else {
-        $this->error('❌ Error al crear backup');
-        return 1;
+        $sizes = [];
+        foreach ($directories as $name => $path) {
+            $sizes[$name] = $this->formatBytes($this->getDirectorySize($path));
+        }
+        
+        return $sizes;
     }
-})->purpose('Crear backup de la base de datos');
+    
+    private function getDirectorySize($directory)
+    {
+        $size = 0;
+        if (!File::exists($directory)) return $size;
+        
+        $files = File::allFiles($directory);
+        foreach ($files as $file) {
+            $size += $file->getSize();
+        }
+        
+        return $size;
+    }
+    
+    private function formatBytes($bytes)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        
+        $bytes /= (1 << (10 * $pow));
+        
+        return round($bytes, 2) . ' ' . $units[$pow];
+    }
+    
+    private function getStatus($usagePercent)
+    {
+        if ($usagePercent >= $this->thresholds['critical']) {
+            return 'critical';
+        } elseif ($usagePercent >= $this->thresholds['warning']) {
+            return 'warning';
+        } else {
+            return 'ok';
+        }
+    }
+    
+    private function saveReport($report)
+    {
+        $reportFile = storage_path('app/private/storage_reports.json');
+        
+        $reports = [];
+        if (File::exists($reportFile)) {
+            $reports = json_decode(File::get($reportFile), true) ?: [];
+        }
+        
+        $reports[] = $report;
+        
+        // Mantener solo los últimos 30 reportes
+        if (count($reports) > 30) {
+            $reports = array_slice($reports, -30);
+        }
+        
+        File::put($reportFile, json_encode($reports, JSON_PRETTY_PRINT));
+    }
+    
+    private function checkAlerts($report)
+    {
+        if ($report['status'] === 'critical') {
+            // Enviar alerta crítica
+            $this->sendAlert('CRÍTICO: Storage al ' . $report['usage_percent'] . '%', $report);
+        } elseif ($report['status'] === 'warning') {
+            // Enviar advertencia
+            $this->sendAlert('ADVERTENCIA: Storage al ' . $report['usage_percent'] . '%', $report);
+        }
+    }
+    
+    private function sendAlert($message, $report)
+    {
+        // Implementar envío de alertas (email, Slack, etc.)
+        error_log($message . ' - ' . json_encode($report));
+    }
+}
 
-// ===== PROGRAMACIÓN DE TAREAS =====
-Schedule::command('fabrica:verificar-mantenimientos')->dailyAt('08:00');
-Schedule::command('fabrica:generar-reporte-diario')->dailyAt('23:30');
-Schedule::command('fabrica:limpiar-datos-antiguos')->weekly()->sundays()->at('02:00');
-Schedule::command('fabrica:backup')->daily()->at('01:00');
+// Ejecutar monitoreo
+$monitor = new StorageMonitor();
+$report = $monitor->checkUsage();
 
-// Limpiar cache cada hora
-Schedule::command('cache:clear')->hourly();
-
-// Procesar colas pendientes cada minuto
-Schedule::command('queue:work --stop-when-empty')->everyMinute();
+echo "📊 Reporte de Storage:\n";
+echo "Total: {$report['total_space']}\n";
+echo "Usado: {$report['used_space']} ({$report['usage_percent']}%)\n";
+echo "Libre: {$report['free_space']}\n";
+echo "Estado: {$report['status']}\n";
 ```
 
 ---
 
-## 🗺️ Mapa de Rutas del Sistema
-
-### **Estructura Jerárquica**
-```
-/ (Raíz)
-├── /welcome (Página de bienvenida)
-├── /dashboard (Panel principal) 🔒
-├── /maquinas/ (Gestión de máquinas) 🔒
-│   ├── / (Lista)
-│   ├── /create (Crear)
-│   ├── /{id} (Ver)
-│   ├── /{id}/edit (Editar)
-│   └── DELETE /{id} (Eliminar)
-├── /planta/ (Módulo de planta) 🔒
-│   └── /monitor-maquina/ (Monitor)
-│       ├── / (Lista de monitores)
-│       └── /{id} (Monitor específico)
-├── /produccion/ (Gestión de producción) 🔒
-├── /inventario/ (Gestión de inventario) 🔒
-│   ├── /materias-primas/
-│   ├── /productos/
-│   └── /proveedores/
-├── /mantenimiento/ (Gestión de mantenimiento) 🔒
-├── /recetas/ (Recetas y fórmulas) 🔒
-├── /reportes/ (Reportes y analytics) 🔒
-└── /admin/ (Administración) 🔒👑
-
-API (/api/)
-├── /user (Usuario autenticado) 🔒
-├── /simulacion/ (Simulación de producción)
-├── /maquinas/{id}/estado (Estados de máquinas)
-├── /produccion/ (API de producción) 🔒
-├── /inventario/ (API de inventario) 🔒
-├── /mantenimiento/ (API de mantenimiento) 🔒
-├── /notificaciones/ (API de notificaciones) 🔒
-├── /webhooks/ (Webhooks externos)
-└── /health (Health check)
-```
-
-### **Leyenda**
-- 🔒 Requiere autenticación
-- 👑 Requiere rol de administrador
-- Sin icono: Acceso público
-
----
-
-*Sistema de rutas bien estructurado que proporciona acceso organizado a todas las funcionalidades del sistema de fábrica biodegradable, desde interfaces web hasta servicios API y comunicación en tiempo real.*
+*Sistema de almacenamiento bien organizado que garantiza la integridad, seguridad y eficiencia en el manejo de todos los archivos del sistema de fábrica biodegradable.*
